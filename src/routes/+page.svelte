@@ -49,3 +49,5 @@
 		{/each}
 	</ul>
 </div>
+
+<a href="https://github.com/Lenart12/tarok">GitHub</a>

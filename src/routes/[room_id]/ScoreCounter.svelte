@@ -1,10 +1,11 @@
 <script lang="ts">
+import { CardType, card_value } from "$lib/tarok";
 
-export let points = 0;
 export let cards = [] as string[];
-let saved_points = [] as number[];
+export let points = 0;
+let card_stack = [] as CardType[];
 
-let counts = {
+export let counts = {
     pagat: 0,
     mond: 0,
     skis: 0,
@@ -16,7 +17,8 @@ let counts = {
 }
 function reset_count() {
     points = 0
-    cards = []
+    cards = [];
+    card_stack = [];
     counts.pagat = 0
     counts.mond = 0
     counts.skis = 0
@@ -28,29 +30,41 @@ function reset_count() {
 }
 
 function undo_count() {
-    const last_card = saved_points.pop();
+    const last_card = card_stack.pop();
     if (last_card === undefined) return;
-    points -= last_card - 2/3
+    points -= card_value(last_card) - 2/3
     cards = [...cards.slice(0, cards.length - 1)]
+    switch(last_card) {
+        case CardType.Pagat: counts.pagat--; break;
+        case CardType.Mond: counts.mond--; break;
+        case CardType.Skis: counts.skis--; break;
+        case CardType.King: counts.king--; break;
+        case CardType.Queen: counts.queen--; break;
+        case CardType.Horse: counts.horse--; break;
+        case CardType.Knight: counts.knight--; break;
+        case CardType.One: counts.one--; break;
+    }
 }
 
-function save_card(card_name: string) {
-    cards = [...cards, card_name]
-}
+function count_card(card: CardType) {
+    let card_name = ''
+    switch(card) {
+        case CardType.Pagat:  counts.pagat++;  card_name = 'I'; break;
+        case CardType.Mond:   counts.mond++;   card_name = 'XXI'; break;
+        case CardType.Skis:   counts.skis++;   card_name = 'ŠK'; break;
+        case CardType.King:   counts.king++;   card_name = `K${counts.king}`; break;
+        case CardType.Queen:  counts.queen++;  card_name = `Q${counts.queen}`; break;
+        case CardType.Horse:  counts.horse++;  card_name = `C${counts.horse}`; break;
+        case CardType.Knight: counts.knight++; card_name = `J${counts.knight}`; break;
+        case CardType.One:    counts.one++;    card_name = `T`; break;
+    }
 
-function count_points(card_value: number) {
-    saved_points.push(card_value)
-    points += card_value - 2/3
-}
+    points += card_value(card) - 2/3
 
-function count_pagat()  {counts.pagat++;  save_card('I');                 count_points(5)}
-function count_mond()   {counts.mond++;   save_card('XXI');               count_points(5)}
-function count_skis()   {counts.skis++;   save_card('ŠK');                count_points(5)}
-function count_king()   {counts.king++;   save_card(`K${counts.king}`);   count_points(5)}
-function count_queen()  {counts.queen++;  save_card(`Q${counts.queen}`);  count_points(4)}
-function count_horse()  {counts.horse++;  save_card(`C${counts.horse}`);  count_points(3)}
-function count_knight() {counts.knight++; save_card(`P${counts.knight}`); count_points(2)}
-function count_one()    {counts.one++;    save_card(`T`);                 count_points(1)}
+    // Add new card to display
+    cards = [...cards, card_name];
+    card_stack.push(card);
+}
 
 function points_delta(points: number) {
     points = Math.round(points)
@@ -80,16 +94,16 @@ function trula_status() {
 <button on:click={reset_count}>Ponastavi</button>
 <button on:click={undo_count}>Razveljavi</button>
 <br><br>
-<button on:click={count_pagat}>Pagat</button>
-<button on:click={count_mond}>Mond</button>
-<button on:click={count_skis}>Škis</button>
+<button on:click={() => count_card(CardType.Pagat)}>Pagat</button>
+<button on:click={() => count_card(CardType.Mond)}>Mond</button>
+<button on:click={() => count_card(CardType.Skis)}>Škis</button>
 <br><br>
-<button on:click={count_king}>Kralj</button>
-<button on:click={count_queen}>Kraljica</button>
-<button on:click={count_horse}>Kavalj</button>
-<button on:click={count_knight}>Fant</button>
+<button on:click={() => count_card(CardType.King)}>Kralj</button>
+<button on:click={() => count_card(CardType.Queen)}>Kraljica</button>
+<button on:click={() => count_card(CardType.Horse)}>Kavalj</button>
+<button on:click={() => count_card(CardType.Knight)}>Fant</button>
 <br><br>
-<button on:click={count_one}>Platelc/Tarok</button>
+<button on:click={() => count_card(CardType.One)}>Platelc/Tarok</button>
 
 <div>
     {#each cards as card, i}
@@ -98,6 +112,17 @@ function trula_status() {
             <br>
         {/if}
     {/each}
+</div>
+
+<div class="error">
+    <h2>{counts.pagat > 1 ? 'Več kot en pagat!' : ''}</h2>
+    <h2>{counts.mond > 1 ? 'Več kot en mond!' : ''}</h2>
+    <h2>{counts.skis > 1 ? 'Več kot en škis!' : ''}</h2>
+    <h2>{counts.king > 4 ? 'Več kot štirje kralji!' : ''}</h2>
+    <h2>{counts.queen > 4 ? 'Več kot štiri kraljice!' : ''}</h2>
+    <h2>{counts.horse > 4 ? 'Več kot štiri kavalji!' : ''}</h2>
+    <h2>{counts.knight > 4 ? 'Več kot štiri fanti!' : ''}</h2>
+    <h2>{counts.one > 35 ? 'Več kot 35 platelcev in tarokov!' : ''}</h2>
 </div>
 
 <table>
@@ -114,3 +139,9 @@ function trula_status() {
         <td>Trula</td><td>{points === 0 ? '' : trula_status()}</td>
     </tr>
 </table>
+
+<style>
+    .error {
+        background-color: red;
+    }
+</style>
