@@ -1,4 +1,4 @@
-import type { GameRoom } from "./tarok"
+import type { GameRoom, GameState } from "./tarok"
 import fs from 'fs';
 
 export function get_room(room_id: string) {
@@ -7,6 +7,24 @@ export function get_room(room_id: string) {
     } catch (error) {
         return undefined;
     }
+}
+
+
+export function get_state(room_id: string) {
+    try {
+        return JSON.parse(fs.readFileSync(`rooms/${room_id}-state.json`, 'utf-8')) as GameState;
+    } catch (error) {
+        const state: GameState = {
+            mixer: 0,
+            rounds: []
+        }
+        save_state(room_id, state);
+        return state;
+    }
+}
+
+export function save_state(room_id: string, state: GameState) {
+    fs.writeFileSync(`rooms/${room_id}-state.json`, JSON.stringify(state))
 }
 
 export function save_room(room: GameRoom) {
