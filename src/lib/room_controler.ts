@@ -1,4 +1,4 @@
-import type { GameRoom, GameState } from "./tarok"
+import { create_default_new_round_settings, type GameRoom, type GameState } from "./tarok"
 import fs from 'fs';
 
 export function get_room(room_id: string) {
@@ -14,9 +14,12 @@ export function get_state(room_id: string) {
     try {
         return JSON.parse(fs.readFileSync(`rooms/${room_id}-state.json`, 'utf-8')) as GameState;
     } catch (error) {
+        const room = get_room(room_id);
+        if (room === undefined) throw new Error('Creating state for room that does not exist ' + room_id)
         const state: GameState = {
             mixer: 0,
-            rounds: []
+            rounds: [],
+            new_round: create_default_new_round_settings(room.player_names.length)
         }
         save_state(room_id, state);
         return state;
