@@ -1,35 +1,41 @@
 # Tarok
 
 # Deljene sobe štetja
+
 Soba ima:
 Ob kreaciji:
+
 - Identifikator (pridevnikžival\d{4})
 - Ime sobe (npr. Tarok v Baza bar)
 - Št igralcev (3, 4, 5)
 - Imena igralcev
 
 Sredi igre:
+
 - Mešalec (Trenutni)
 - Rezultati:
-    - Zapis: 
-        - Vrsta igra
-        - Igralec
-        - Rufan igralec
-        - +- Točke za vsakega igralca
-        - +- Radelci za vsakega igralca
+  - Zapis:
+    - Vrsta igra
+    - Igralec
+    - Rufan igralec
+    - +- Točke za vsakega igralca
+    - +- Radelci za vsakega igralca
 
 Vsaka sprememba pošlje spremembo, veljavna sprememba je samo mešalec ali rezultat
 
 # Lokalna soba
+
 Brez shranjevanje in obnavljanja stanja
 
 # Shranjevanje rezultatov
+
 Sobe se ne brišejo, shranjene v json dokument, id shranjene sobe so zapisane v local storage in prikazane napravi.
 Shranijo se vsakemu, ki obišče sobo
 
 ./igre/radikalnasova2313
 
 # Tockovanje
+
 IGRE
 trojka 10 + razlika
 dvojka 30 + razlika
@@ -70,7 +76,6 @@ Pet gumbov
 1 2 3 4 5
 
 izbiras karte po 3
-
 
 ## Developing
 

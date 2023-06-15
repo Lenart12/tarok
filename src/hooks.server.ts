@@ -1,3 +1,3 @@
-import inject_socketio from "$lib/game_connection_controller";
+import inject_socketio from '$lib/game_connection_controller';
 
-global.httpServer?.then(httpServer => inject_socketio(httpServer))
+global.httpServer?.then((httpServer) => inject_socketio(httpServer));

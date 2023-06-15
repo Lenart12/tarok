@@ -1,8 +1,31 @@
-<div class="app">
-	<nav>
-		<a href="/">Domov</a>
-	</nav>
-	<main>
-		<slot />
-	</main>
-</div>
+<script>
+  import '@skeletonlabs/skeleton/themes/theme-skeleton.css';
+  import '@skeletonlabs/skeleton/styles/skeleton.css';
+  import '../app.postcss';
+  import { AppShell, AppBar } from '@skeletonlabs/skeleton';
+</script>
+
+<AppShell>
+  <svelte:fragment slot="header">
+    <!-- App Bar -->
+    <AppBar>
+      <svelte:fragment slot="lead">
+        <a href="/">
+          <strong class="text-xl uppercase">Tarok</strong>
+        </a>
+      </svelte:fragment>
+      <svelte:fragment slot="trail">
+        <a
+          class="btn btn-sm variant-ghost-surface"
+          href="https://github.com/Lenart12/tarok"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub
+        </a>
+      </svelte:fragment>
+    </AppBar>
+  </svelte:fragment>
+
+  <slot />
+</AppShell>
