@@ -181,11 +181,11 @@
           return Realizacija.Narejena;
       }
     };
-    counter_razlika = counter_razlika.startsWith('+')
+    let inverted_counter_razlika = counter_razlika.startsWith('+')
       ? counter_razlika.replace('+', '-')
       : counter_razlika.replace('-', '+');
 
-    import_counter_osnovno(counter_razlika, invert_realizacija(counter_kings), invert_realizacija(counter_trula));
+    import_counter_osnovno(inverted_counter_razlika, invert_realizacija(counter_kings), invert_realizacija(counter_trula));
   }
 
   function show_if_round(current: RoundType, round_type: NewRoundType) {
