@@ -26,8 +26,20 @@ export function get_state(room_id: string) {
     }
 }
 
+const save_timeout: {[file_name: string]: NodeJS.Timeout} = {}
+function save_delayed(file_name: string, data: string) {
+    clearInterval(save_timeout[file_name])
+
+    save_timeout[file_name] = setTimeout(
+        () => {
+            fs.writeFileSync(file_name, data);
+            console.log('Saving ', file_name)
+        }, 5000
+    )
+}
+
 export function save_state(room_id: string, state: GameState) {
-    fs.writeFileSync(`rooms/${room_id}-state.json`, JSON.stringify(state))
+    save_delayed(`rooms/${room_id}-state.json`, JSON.stringify(state))
 }
 
 export function save_room(room: GameRoom) {
