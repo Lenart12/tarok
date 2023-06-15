@@ -152,7 +152,7 @@ export function round_type_game(round_type: RoundType) {
     }
 }
 
-export function round_radelc_increase(round_type: RoundType) {
+export function new_radelc_for_round(round_type: RoundType) {
     switch (round_type) {
         case RoundType.Klop:
         case RoundType.Pikolo:
@@ -178,13 +178,15 @@ export function game_is_solo(player_count: number, round_type: RoundType) {
     }
 }
 
+function create_n_array_of<T>(n: number, i: T) { return new Array(n).fill(i) }
+
 export function create_default_new_round_settings(player_count: number) {
     const settings = {
         round_type: RoundType.Dva,
         player: 0,
         rocno: {
-            points_change: new Array(player_count).fill(0),
-            radelc_change: new Array(player_count).fill(0)
+            points_change: create_n_array_of(player_count, 0),
+            radelc_change: create_n_array_of(player_count, 0)
         },
         osnovno: {
             razlika: '+0',
@@ -196,7 +198,7 @@ export function create_default_new_round_settings(player_count: number) {
             mondfang: undefined
         },
         klop: {
-            points: new Array(player_count).fill(0)
+            points: create_n_array_of(player_count, 0)
         },
         opravljanje: {
             opravljeno: false
@@ -232,14 +234,22 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
     } as GameRound;
 
     const player_count = new_round.rocno.points_change.length
+    const ima_radelc = (player: number) => radelci[player] > 0
+    const realiziraj = (realizacija: Realizacija, tocke: number) => {
+        switch (realizacija) {
+            case Realizacija.Narejena: return tocke; break;
+            case Realizacija.Izgubljena: return -tocke; break;
+        }
+        return 0
+    }
 
     const evaluate_rocno = () => {
         round.points_change = structuredClone(new_round.rocno.points_change)
         round.radelc_change = structuredClone(new_round.rocno.radelc_change)
     }
     const evaluate_renons = () => {
-        round.points_change = new Array(player_count).fill(0)
-        round.radelc_change = new Array(player_count).fill(0)
+        round.points_change = create_n_array_of(player_count, 0)
+        round.radelc_change = create_n_array_of(player_count, 0)
         round.points_change[new_round.player] -= 70
 
         // if (radelci[new_round.player] > 0)
@@ -255,28 +265,14 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
         game_value += razlika
         if (!igra_opravljena) game_value = -game_value
 
-        switch (kralji) {
-            case Realizacija.Narejena: game_value += 10; break;
-            case Realizacija.Izgubljena: game_value -= 10; break;
-        }
-        switch (trula) {
-            case Realizacija.Narejena: game_value += 10; break;
-            case Realizacija.Izgubljena: game_value -= 10; break;
-        }
-        switch (kralj_ultimo) {
-            case Realizacija.Narejena: game_value += 10; break;
-            case Realizacija.Izgubljena: game_value -= 10; break;
-        }
-        switch (pagat_ultimo) {
-            case Realizacija.Narejena: game_value += 25; break;
-            case Realizacija.Izgubljena: game_value -= 25; break;
-        }
+        game_value += realiziraj(kralji, 10)
+        game_value += realiziraj(trula, 10)
+        game_value += realiziraj(kralj_ultimo, 10)
+        game_value += realiziraj(pagat_ultimo, 25)
 
-        round.points_change = new Array(player_count).fill(0)
-
+        round.points_change = create_n_array_of(player_count, 0)
         round.points_change[new_round.player] = game_value
 
-        console.log(rufan_igralec, !game_is_solo(player_count, new_round.round_type))
         if (rufan_igralec !== undefined && !game_is_solo(player_count, new_round.round_type)) {
             round.points_change[rufan_igralec] = game_value
         }
@@ -285,48 +281,51 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
             round.points_change[mondfang] -= 20
         }
 
-        if (radelci[new_round.player] > 0)
-            round.points_change = round.points_change.map(p => p * 2)
+        const novi_radelci = new_radelc_for_round(new_round.round_type)
+        round.radelc_change = create_n_array_of(player_count, novi_radelci)
 
-        const increase = round_radelc_increase(new_round.round_type)
-        if (increase === 0) {
-            round.radelc_change = new Array(player_count).fill(0)
-            if (radelci[new_round.player] > 0 && igra_opravljena)
-                round.radelc_change[new_round.player] = -1
-        } else {
-            round.radelc_change = new Array(player_count).fill(increase)
+        if (ima_radelc(new_round.player)) {
+            round.points_change = round.points_change.map(p => p * 2)
+            
+            if (igra_opravljena)
+                round.radelc_change[new_round.player] -= 1
         }
     }
     const evaluate_klop = () => {
         const { points }  = new_round.klop
+        round.primary_player = -1
 
-        round.points_change = new Array(player_count).fill(0)
-
+        round.points_change = create_n_array_of(player_count, 0)
+        
         if (points.indexOf(0) !== -1) {
+            // Prazen
             round.points_change[points.indexOf(0)] = -70
         } else if (points.findIndex(p => p >= 35) !== -1) {
-            round.points_change[points.findIndex(p => p >= 35)] = 70
+            // Poln
+            round.points_change[points.findIndex(p => p >= 35)] = 70 
         } else {
+            // Navadno
             round.points_change = points.map(p => -p)
         }
 
         round.points_change = round.points_change.map(
-            (points, i) => radelci[i] > 0 ? -points * 2 : -points)
-        round.radelc_change = new Array(player_count).fill(round_radelc_increase(new_round.round_type))
-        round.primary_player = -1
+            (points, i) => ima_radelc(i) ? -points * 2 : -points)
+        round.radelc_change = create_n_array_of(player_count, new_radelc_for_round(new_round.round_type))
     }
     const evaluate_opravljanje = () => {
-        round.points_change = new Array(player_count).fill(0)
-        round.points_change[new_round.player] = round_base_value(new_round.round_type) * (new_round.opravljanje.opravljeno ? 1 : -1)
-        if (radelci[new_round.player] > 0)
+        const { opravljeno } = new_round.opravljanje
+
+        round.points_change = create_n_array_of(player_count, 0)
+        round.points_change[new_round.player] = round_base_value(new_round.round_type) * (opravljeno ? 1 : -1)
+        
+        const novi_radelci = new_radelc_for_round(new_round.round_type)
+        round.radelc_change = create_n_array_of(player_count, novi_radelci)
+
+        if (ima_radelc(new_round.player)) {
             round.points_change[new_round.player] *= 2
-        const increase = round_radelc_increase(new_round.round_type)
-        if (increase === 0) {
-            round.radelc_change = new Array(player_count).fill(0)
-            if (radelci[new_round.player] > 0 && new_round.opravljanje.opravljeno)
-                round.radelc_change[new_round.player] = -1
-        } else {
-            round.radelc_change = new Array(player_count).fill(increase)
+            
+            if (new_round.opravljanje.opravljeno)
+                round.radelc_change[new_round.player] -= 1
         }
     }
 
