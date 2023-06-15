@@ -46,7 +46,7 @@ export enum Realizacija {
 }
 
 export interface NewRoundOsnovno {
-    razlika: number,
+    razlika: string,
     rufan_igralec?: number
     kralji: Realizacija,
     trula: Realizacija,
@@ -187,7 +187,7 @@ export function create_default_new_round_settings(player_count: number) {
             radelc_change: new Array(player_count).fill(0)
         },
         osnovno: {
-            razlika: 0,
+            razlika: '+0',
             rufan_igralec: undefined,
             kralji: Realizacija.Brez,
             trula: Realizacija.Brez,
@@ -246,11 +246,14 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
         //    round.points_change[new_round.player] *= 2
     }
     const evaluate_osnovno = () => {
-        const {razlika,rufan_igralec,kralji,trula,kralj_ultimo,pagat_ultimo,mondfang} = new_round.osnovno
-
+        const {rufan_igralec,kralji,trula,kralj_ultimo,pagat_ultimo,mondfang} = new_round.osnovno
+        const razlika_str = new_round.osnovno.razlika
+        const igra_opravljena = razlika_str.startsWith('+')
+        const razlika = parseInt(razlika_str.substring(1)) 
+        
         let game_value = round_base_value(new_round.round_type)
-        game_value += Math.abs(razlika)
-        if (razlika < 0) game_value = -game_value
+        game_value += razlika
+        if (!igra_opravljena) game_value = -game_value
 
         switch (kralji) {
             case Realizacija.Narejena: game_value += 10; break;
@@ -288,7 +291,7 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
         const increase = round_radelc_increase(new_round.round_type)
         if (increase === 0) {
             round.radelc_change = new Array(player_count).fill(0)
-            if (radelci[new_round.player] > 0 && razlika >= 0)
+            if (radelci[new_round.player] > 0 && igra_opravljena)
                 round.radelc_change[new_round.player] = -1
         } else {
             round.radelc_change = new Array(player_count).fill(increase)

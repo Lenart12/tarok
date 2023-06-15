@@ -34,7 +34,7 @@
             // console.log('WS New state', new_state)
             old_game_state = structuredClone(new_state)
             game_state = new_state;
-            update_scoreboard_total()
+            draw_updated_state()
         });
     })
 
@@ -44,7 +44,9 @@
             io.removeAllListeners()
         }
     })
-
+    
+    export const razlika_slider = ["-35","-30","-25","-20","-15","-10","-5","-0","+0","+5","+10","+15","+20","+25","+30","+35"]
+    export let razlika_slider_value: number;
 
     function update_scoreboard_total() {
         const radelc = [...new Array(player_count)].fill(0)
@@ -62,8 +64,8 @@
     function update_state() {
         if (game_state === undefined || JSON.stringify(game_state) === JSON.stringify(old_game_state)) return;
         old_game_state = structuredClone(game_state)
-        update_scoreboard_total()
         io.emit('tarok:update-state', game_state, data.room.id);
+        draw_updated_state()
     }
 
     function primary_player_changed() {
@@ -96,6 +98,17 @@
         if (game_state === undefined || game_state.rounds.length === 0) return;
         game_state.rounds = [...game_state.rounds.slice(0, game_state.rounds.length - 1)]
         mixer_left()
+    }
+
+    function update_razlika_slider() {
+        if (game_state === undefined) return;
+        game_state.new_round.osnovno.razlika = razlika_slider[razlika_slider_value]
+    }
+
+    function draw_updated_state() {
+        if (game_state === undefined) return;
+        update_scoreboard_total()
+        razlika_slider_value = razlika_slider.indexOf(game_state.new_round.osnovno.razlika)
     }
 
     $: game_state !== undefined && update_state()
@@ -227,7 +240,9 @@ Mešalec
     <h3>
         <label for="razlika">Razlika</label>
     </h3>
-    <input type="range" step="5" min="-70" max="70" id="razlika" bind:value={game_state.new_round.osnovno.razlika}>{game_state.new_round.osnovno.razlika}
+    <input type="range" min="0" max="15" id="razlika"
+        bind:value={razlika_slider_value}
+        on:input={update_razlika_slider}>{razlika_slider[razlika_slider_value]}
 
     <h3>Trula</h3>
     <input type="radio" bind:group={game_state.new_round.osnovno.trula} value={Realizacija.Izgubljena} id="trula_izgubljena">
