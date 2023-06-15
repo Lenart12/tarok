@@ -338,16 +338,16 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
 
     if (points.indexOf(0) !== -1) {
       // Prazen
-      round.points_change[points.indexOf(0)] = -70;
+      round.points_change[points.indexOf(0)] = 70;
     } else if (points.findIndex((p) => p >= 35) !== -1) {
       // Poln
-      round.points_change[points.findIndex((p) => p >= 35)] = 70;
+      round.points_change[points.findIndex((p) => p >= 35)] = -70;
     } else {
       // Navadno
       round.points_change = points.map((p) => -p);
     }
 
-    round.points_change = round.points_change.map((points, i) => (ima_radelc(i) ? -points * 2 : -points));
+    round.points_change = round.points_change.map((points, i) => (ima_radelc(i) ? points * 2 : points));
     round.radelc_change = create_n_array_of(player_count, new_radelc_for_round(new_round.round_type));
   };
   const evaluate_opravljanje = () => {
