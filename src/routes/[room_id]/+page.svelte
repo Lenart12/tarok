@@ -10,10 +10,10 @@
     export let data;
     
     const player_count = data.room.player_names.length
-    export let radelc_total = [] as number[]
-    export let points_total = [] as number[]
+    let radelc_total = [] as number[]
+    let points_total = [] as number[]
 
-    export let game_state: GameState | undefined = undefined;
+    let game_state: GameState | undefined = undefined;
     let old_game_state: GameState | undefined = undefined;
 
     onMount(async () => {
@@ -48,8 +48,12 @@
         }
     })
     
-    export const razlika_slider = ["-35","-30","-25","-20","-15","-10","-5","-0","+0","+5","+10","+15","+20","+25","+30","+35"]
-    export let razlika_slider_value: number;
+    const razlika_slider = ["-35","-30","-25","-20","-15","-10","-5","-0","+0","+5","+10","+15","+20","+25","+30","+35"]
+    let razlika_slider_value: number;
+    let counter_points: number;
+    let counter_razlika: string;
+    let counter_kings: Realizacija;
+    let counter_trula: Realizacija;
 
     function update_scoreboard_total() {
         const radelc = [...new Array(player_count)].fill(0)
@@ -112,6 +116,44 @@
         if (game_state === undefined) return;
         update_scoreboard_total()
         razlika_slider_value = razlika_slider.indexOf(game_state.new_round.osnovno.razlika)
+    }
+
+    function import_counter_osnovno(razlika: string, kings: Realizacija, trula: Realizacija) {
+        if (game_state === undefined) return;
+        game_state.new_round.osnovno.razlika = razlika
+        game_state.new_round.osnovno.kralji = kings
+        game_state.new_round.osnovno.trula = trula
+        draw_updated_state()
+        document.getElementById('osnovno')?.scrollIntoView({behavior: 'smooth'})
+    }
+
+    function import_counter_klop(player_id: number) {
+        if (game_state === undefined) return;
+        game_state.new_round.klop.points[player_id] = Math.floor((Math.abs(counter_points) + 2) / 5) * 5
+        document.getElementById('klop')?.scrollIntoView({behavior: 'smooth'})
+    }
+
+    function import_counter_player() {
+        import_counter_osnovno(counter_razlika, counter_kings, counter_trula)
+    }
+
+    function import_counter_enemy() {
+        const invert_realizacija = (realizacija: Realizacija) => {
+            switch(realizacija) {
+                case Realizacija.Narejena: return Realizacija.Izgubljena;
+                case Realizacija.Brez: return Realizacija.Brez
+                case Realizacija.Izgubljena: return Realizacija.Narejena;
+            }
+        }
+        counter_razlika = counter_razlika.startsWith('+') ?
+            counter_razlika.replace('+', '-'):
+            counter_razlika.replace('-', '+')
+
+        import_counter_osnovno(
+            counter_razlika,
+            invert_realizacija(counter_kings),
+            invert_realizacija(counter_trula)
+        )
     }
 
     $: game_state !== undefined && update_state()
@@ -199,7 +241,7 @@ Mešalec
 <input type="radio" bind:group={game_state.new_round.round_type} value={RoundType.Valat} id="TypeValat">
 <label for="TypeValat">Valat</label>
 
-<div hidden={round_type_game(game_state.new_round.round_type) === NewRoundType.Klop}>
+<div id="klop" hidden={round_type_game(game_state.new_round.round_type) === NewRoundType.Klop}>
     <h3>Igralec</h3>
     {#each data.room.player_names as player_name, i}
         <input type="radio" bind:group={game_state.new_round.player} value={i} id="player_{i}"
@@ -226,8 +268,7 @@ Mešalec
 <div hidden={round_type_game(game_state.new_round.round_type) !== NewRoundType.Renons}>
     
 </div>
-<div hidden={round_type_game(game_state.new_round.round_type) !== NewRoundType.Osnovno}>
-    
+<div id="osnovno" hidden={round_type_game(game_state.new_round.round_type) !== NewRoundType.Osnovno}>
     <div hidden={game_is_solo(player_count, game_state.new_round.round_type)}>
         <h3>Rufan igralec</h3>
         <input type="radio" bind:group={game_state.new_round.osnovno.rufan_igralec} value={undefined} id="rufan_solo">
@@ -310,7 +351,26 @@ Nalaganje povezave
 {/if}
 
 <h2>Štetje</h2>
-<ScoreCounter />
+<ScoreCounter
+    bind:points={counter_points}
+    bind:razlika={counter_razlika}
+    bind:kralji={counter_kings}
+    bind:trula={counter_trula} />
+
+{#if game_state !== undefined}
+
+
+<div hidden={round_type_game(game_state.new_round.round_type) !== NewRoundType.Klop}>
+    {#each data.room.player_names as player_name, i}
+        <button on:click={() => import_counter_klop(i)}>Vpiši za {player_name}</button>
+    {/each}
+</div>
+
+<div hidden={round_type_game(game_state.new_round.round_type) !== NewRoundType.Osnovno}>
+    <button on:click={import_counter_player}>Vpiši za igralca</button>
+    <button on:click={import_counter_enemy}>Vpiši za nasprotnika</button>
+</div>
+{/if}
 
 <h2>Povabi v sobo</h2>
 <canvas id="invite_qr"></canvas>

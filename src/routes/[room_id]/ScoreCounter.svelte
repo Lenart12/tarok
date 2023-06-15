@@ -1,11 +1,21 @@
 <script lang="ts">
-import { CardType, card_value } from "$lib/tarok";
+import { CardType, Realizacija, card_value } from "$lib/tarok";
 
-export let cards = [] as string[];
-export let points = 0;
+let cards = [] as string[];
+let _points = 0;
 let card_stack = [] as CardType[];
 
-export let counts = {
+export let points: number
+export let razlika: string;
+export let kralji: Realizacija;
+export let trula: Realizacija;
+
+$: points = Math.round(_points)
+$: razlika = points_delta(_points)
+$: kralji = king_realization(counts.king)
+$: trula = trula_realization(counts.pagat, counts.mond, counts.skis)
+
+let counts = {
     pagat: 0,
     mond: 0,
     skis: 0,
@@ -16,7 +26,7 @@ export let counts = {
     one: 0
 }
 function reset_count() {
-    points = 0
+    _points = 0
     cards = [];
     card_stack = [];
     counts.pagat = 0
@@ -32,7 +42,7 @@ function reset_count() {
 function undo_count() {
     const last_card = card_stack.pop();
     if (last_card === undefined) return;
-    points -= card_value(last_card) - 2/3
+    _points -= card_value(last_card) - 2/3
     cards = [...cards.slice(0, cards.length - 1)]
     switch(last_card) {
         case CardType.Pagat: counts.pagat--; break;
@@ -59,7 +69,7 @@ function count_card(card: CardType) {
         case CardType.One:    counts.one++;    card_name = `T`; break;
     }
 
-    points += card_value(card) - 2/3
+    _points += card_value(card) - 2/3
 
     // Add new card to display
     cards = [...cards, card_name];
@@ -71,23 +81,32 @@ function points_delta(points: number) {
     let difference = points - 35
     let rounded_points = Math.floor((Math.abs(difference) + 2) / 5) * 5
 
-    return `${difference < 0 ? '-' : '+'}${rounded_points} (${difference})`
+    return `${difference < 0 ? '-' : '+'}${rounded_points}`
 }
 
-function king_status() {
-    switch (counts.king) {
-        case 0: return 'V drugem kupčku';
-        case 4: return 'V tem kupčku';
+function king_realization(king_count: number) {
+    switch (king_count) {
+        case 0: return Realizacija.Izgubljena;
+        case 4: return Realizacija.Narejena;
+    }
+    return Realizacija.Brez
+}
+
+function realizacija_status(realizacija: Realizacija) {
+    switch (realizacija) {
+        case Realizacija.Izgubljena: return 'V drugem kupčku';
+        case Realizacija.Narejena: return 'V tem kupčku';
     }
     return '';
 }
-function trula_status() {
-    let trula_count = counts.pagat + counts.mond + counts.skis
+
+function trula_realization(pagat: number, mond: number, skis: number) {
+    let trula_count = pagat + mond + skis
     switch (trula_count) {
-        case 0: return 'V drugem kupčku';
-        case 3: return 'V tem kupčku';
+        case 0: return Realizacija.Izgubljena;
+        case 3: return Realizacija.Narejena;
     }
-    return '';
+    return Realizacija.Brez
 }
 </script>
 
@@ -127,16 +146,16 @@ function trula_status() {
 
 <table>
     <tr>
-        <td>Točke</td><td>{Math.round(points)}</td>
+        <td>Točke</td><td>{points}</td>
     </tr>
     <tr>
-        <td>Razlika</td><td>{points_delta(points)}</td>
+        <td>Razlika</td><td>{razlika} ({points - 35})</td>
     </tr>
     <tr>
-        <td>Kralji</td><td>{points === 0 ? '' : king_status()}</td>
+        <td>Kralji</td><td>{realizacija_status(kralji)}</td>
     </tr>
     <tr>
-        <td>Trula</td><td>{points === 0 ? '' : trula_status()}</td>
+        <td>Trula</td><td>{realizacija_status(trula)}</td>
     </tr>
 </table>
 
