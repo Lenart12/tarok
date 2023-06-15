@@ -5,7 +5,8 @@
     import ScoreCounter from './ScoreCounter.svelte';
 	import { NewRoundType, Realizacija, RoundType, create_default_new_round_settings, evaluate_round, game_is_solo, round_type_game, round_type_shorthand } from '$lib/tarok';
     import type { GameState } from '$lib/tarok';
-    
+    import QRCode from 'qrcode'
+
     export let data;
     
     const player_count = data.room.player_names.length
@@ -36,6 +37,8 @@
             game_state = new_state;
             draw_updated_state()
         });
+
+        QRCode.toCanvas(document.getElementById('invite_qr'), window.location.toString())
     })
 
     onDestroy(() => {
@@ -309,6 +312,8 @@ Nalaganje povezave
 <h2>Štetje</h2>
 <ScoreCounter />
 
+<h2>Povabi v sobo</h2>
+<canvas id="invite_qr"></canvas>
 <style>
     .mixer {
         background-color: aquamarine;
