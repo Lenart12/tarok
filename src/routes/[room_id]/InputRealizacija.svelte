@@ -2,11 +2,23 @@
   import { Realizacija } from '$lib/tarok';
   export let id: string;
   export let value: Realizacija;
+
+  const realizacije = [
+    { type: Realizacija.Izgubljena, display: 'Izgubljeno', variant: 'variant-filled-error' },
+    { type: Realizacija.Brez, display: 'Brez', variant: 'variant-filled-secondary' },
+    { type: Realizacija.Narejena, display: 'Narejeno', variant: 'variant-filled-primary' },
+  ];
 </script>
 
-<input type="radio" bind:group={value} value={Realizacija.Izgubljena} id="{id}_izgubljeno" />
-<label for="{id}_izgubljeno">Izgubljeno</label>
-<input type="radio" bind:group={value} value={Realizacija.Brez} id="{id}_brez" />
-<label for="{id}_brez">Brez</label>
-<input type="radio" bind:group={value} value={Realizacija.Narejena} id="{id}_narejeno" />
-<label for="{id}_narejeno">Narejeno</label>
+<div class="btn-group variant-soft m-2">
+  {#each realizacije as realizacija}
+    {@const radio_id = `${id}_${Realizacija[realizacija.type]}`}
+    <label
+      for={radio_id}
+      class={'py-2 px-3 flex items-center ' + (value === realizacija.type ? realizacija.variant : '')}
+    >
+      <input hidden type="radio" id={radio_id} bind:group={value} value={realizacija.type} />
+      <p>{realizacija.display}</p>
+    </label>
+  {/each}
+</div>
