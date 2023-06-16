@@ -26,6 +26,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>Tarok</title>
+</svelte:head>
+
 <div class="container mx-auto p-8 space-y-8">
   <div class="card px-8 py-4">
     <div class="card-header">

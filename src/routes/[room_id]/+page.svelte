@@ -200,6 +200,10 @@
   $: game_state !== undefined && update_state();
 </script>
 
+<svelte:head>
+  <title>{data.room.title} - Tarok</title>
+</svelte:head>
+
 <div class="container mx-auto p-8 px-0 md:px-8 space-y-8 overflow-auto flex flex-wrap justify-stretch">
   <h1 class="h1 mx-4 inline-block">{data.room.title}</h1>
 

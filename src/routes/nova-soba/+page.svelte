@@ -9,6 +9,10 @@
   const player_placeholder = ['Prvi igralec', 'Drugi igralec', 'Tretji igralec', 'Četrti igralec', 'Peti igralec'];
 </script>
 
+<svelte:head>
+  <title>Ustvari sobo</title>
+</svelte:head>
+
 <div class="container mx-auto p-8 px-0 md:px-8 space-y-8 overflow-auto flex flex-wrap justify-stretch">
   <div class="card flex-1">
     <div class="card-header">
