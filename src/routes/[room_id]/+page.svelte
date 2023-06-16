@@ -36,7 +36,7 @@
   $: round = game_state?.new_round.round_type || RoundType.Rocno;
 
   onMount(async () => {
-    if ($room_ids.indexOf(data.room.id) === -1) room_ids.set([...$room_ids, data.room.id]);
+    if ($room_ids.indexOf(data.room.id) === -1) room_ids.set([data.room.id, ...$room_ids]);
 
     const on_connected = () => {
       console.log('WS connected, joined room', data.room.id);
