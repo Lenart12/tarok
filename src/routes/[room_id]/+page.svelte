@@ -185,7 +185,11 @@
       ? counter_razlika.replace('+', '-')
       : counter_razlika.replace('-', '+');
 
-    import_counter_osnovno(inverted_counter_razlika, invert_realizacija(counter_kings), invert_realizacija(counter_trula));
+    import_counter_osnovno(
+      inverted_counter_razlika,
+      invert_realizacija(counter_kings),
+      invert_realizacija(counter_trula)
+    );
   }
 
   function show_if_round(current: RoundType, round_type: NewRoundType) {
@@ -196,32 +200,34 @@
   $: game_state !== undefined && update_state();
 </script>
 
-<div class="container mx-auto p-8 space-y-8">
-  <h1 class="h1">{data.room.title}</h1>
+<div class="container mx-auto p-8 px-0 md:px-8 space-y-8 overflow-auto flex flex-wrap justify-stretch">
+  <h1 class="h1 mx-4 inline-block">{data.room.title}</h1>
 
-  {#if game_state !== undefined}
-    <div class="card min-w-fit">
-      <div class="card-header">
-        <h2 class="h2">Točke</h2>
-      </div>
+  <div class="card inline-block w-full min-w-fit">
+    <div class="card-header">
+      <h2 class="h2">Točke</h2>
+    </div>
 
-      <div class="p-4">
-        <table id="scoreboard" class="divide-y divide-primary-700 w-full">
-          <tr>
-            {#each data.room.player_names as player_name, i}
-              <th class="m-4 w-1/4">
+    <div class="p-4">
+      <table id="scoreboard" class="divide-y divide-primary-700 w-full">
+        <tr>
+          {#each data.room.player_names as player_name, i}
+            <th class="m-4">
+              <span class="relative inline-blcok">
                 {player_name}
-                {#if i === game_state.mixer}
-                  <div class="badge variant-filled-primary p-1" />
+                {#if game_state !== undefined && i === game_state.mixer}
+                  <div class="badge variant-filled-primary p-1 absolute -top-0 -right-2" />
                 {/if}
-              </th>
-            {/each}
-          </tr>
-          <tr>
-            {#each radelc_total as radelc}
-              <td>Rad: {radelc}</td>
-            {/each}
-          </tr>
+              </span>
+            </th>
+          {/each}
+        </tr>
+        <tr>
+          {#each radelc_total as radelc}
+            <td>Rad: {radelc}</td>
+          {/each}
+        </tr>
+        {#if game_state !== undefined}
           {#each game_state.rounds as round}
             <tr>
               {#each round.points_change as points, i}
@@ -241,25 +247,36 @@
               <td>={points}</td>
             {/each}
           </tr>
-        </table>
+        {:else}
+          {#each new Array(4) as _}
+            <tr>
+              {#each new Array(4) as _}
+                <td>
+                  <span class="placeholder animate-pulse inline-block w-1/2 p-2 mt-1" />
+                </td>
+              {/each}
+            </tr>
+          {/each}
+        {/if}
+      </table>
 
-        <div class="flex justify-center flex-wrap gap-4 mt-8">
-          <button class="btn variant-soft" on:click={undo_round}>Razveljavi rundo</button>
+      <div class="flex justify-center flex-wrap gap-4 mt-8">
+        <button class="btn variant-soft" on:click={undo_round}>Razveljavi rundo</button>
 
-          <div class="btn-group variant-soft">
-            <button on:click={mixer_left}>&lt;</button>
-            <span class="flex items-center">Mešalec</span>
-            <button on:click={mixer_right}>&gt;</button>
-          </div>
+        <div class="btn-group variant-soft">
+          <button on:click={mixer_left}>&lt;</button>
+          <span class="flex items-center">Mešalec</span>
+          <button on:click={mixer_right}>&gt;</button>
         </div>
       </div>
     </div>
+  </div>
 
-    <div class="card min-w-fit">
+  <div class="card inline-block w-full min-w-fit">
+    {#if game_state !== undefined}
       <div class="card-header">
         <h2 class="h2">Nova runda</h2>
       </div>
-
       <div class="p-4 space-y-4">
         <RoundSelector bind:value={game_state.new_round.round_type} />
 
@@ -272,12 +289,12 @@
         >
           <h3 class="h3">Igralec</h3>
 
-          <div class="btn-group variant-soft">
+          <div class="btn-group w-full variant-soft">
             {#each data.room.player_names as player_name, i}
               {@const id = `player_${i}`}
               <label
                 for={id}
-                class="py-2 px-3 flex items-center"
+                class="py-2 !px-0 flex flex-1 content-stretch"
                 class:variant-filled-primary={game_state.new_round.player === i}
               >
                 <input
@@ -288,7 +305,7 @@
                   value={i}
                   on:change={primary_player_changed}
                 />
-                <p>{player_name}</p>
+                <p class="flex-1 text-center">{player_name}</p>
               </label>
             {/each}
           </div>
@@ -330,10 +347,10 @@
           <div hidden={game_is_solo(player_count, game_state.new_round.round_type)}>
             <h3 class="h3">Rufan igralec</h3>
 
-            <div class="btn-group variant-soft">
+            <div class="btn-group w-full variant-soft">
               <label
                 for="rufan_solo"
-                class="py-2 px-3 flex items-center"
+                class="py-2 !px-0 flex flex-1 content-stretch"
                 class:variant-filled-primary={game_state.new_round.osnovno.rufan_igralec === undefined}
               >
                 <input
@@ -343,18 +360,18 @@
                   bind:group={game_state.new_round.osnovno.rufan_igralec}
                   value={undefined}
                 />
-                <p>Solo</p>
+                <p class="flex-1 text-center">Solo</p>
               </label>
               {#each data.room.player_names as player_name, i}
                 {@const id = `rufan_${i}`}
                 <label
                   for={id}
-                  class="py-2 px-3 flex items-center"
+                  class="py-2 !px-0 flex flex-1 content-stretch"
                   class:variant-filled-primary={game_state.new_round.osnovno.rufan_igralec === i}
                   class:hidden={game_state.new_round.player === i}
                 >
                   <input hidden type="radio" {id} bind:group={game_state.new_round.osnovno.rufan_igralec} value={i} />
-                  <p>{player_name}</p>
+                  <p class="flex-1 text-center">{player_name}</p>
                 </label>
               {/each}
             </div>
@@ -403,10 +420,10 @@
           <div>
             <h3 class="h3">Mond vzet</h3>
 
-            <div class="btn-group variant-soft">
+            <div class="btn-group w-full variant-soft">
               <label
                 for="mond_brez"
-                class="py-2 px-3 flex items-center"
+                class="py-2 px-1 flex flex-1 items-center"
                 class:variant-filled-primary={game_state.new_round.osnovno.mondfang === undefined}
               >
                 <input
@@ -416,17 +433,17 @@
                   bind:group={game_state.new_round.osnovno.mondfang}
                   value={undefined}
                 />
-                <p>Brez</p>
+                <p class="flex-1 text-center">Brez</p>
               </label>
               {#each data.room.player_names as player_name, i}
                 {@const id = `mondfang_${i}`}
                 <label
                   for={id}
-                  class="py-2 px-3 flex items-center"
+                  class="py-2 !px-0 flex flex-1 content-stretch"
                   class:variant-filled-error={game_state.new_round.osnovno.mondfang === i}
                 >
                   <input hidden type="radio" {id} bind:group={game_state.new_round.osnovno.mondfang} value={i} />
-                  <p>{player_name}</p>
+                  <p class="flex-1 text-center">{player_name}</p>
                 </label>
               {/each}
             </div>
@@ -474,12 +491,30 @@
           <button class="btn variant-filled-primary" on:click={submit_round}>Potrdi</button>
         </div>
       </div>
-    </div>
-  {:else}
-    Nalaganje povezave
-  {/if}
+    {:else}
+      <div class="p-4">
+        <h2 class="h2">Nalaganje igre...</h2>
+        <div class="flex justify-start flex-wrap gap-4 mt-2">
+          <div class="placeholder animate-pulse p-4 w-1/4" />
+          <div class="placeholder animate-pulse p-4 w-1/2" />
+          <div class="placeholder animate-pulse p-4 w-1/3" />
+          <div class="placeholder animate-pulse p-4 w-1/4" />
+          <div class="placeholder animate-pulse p-4 w-1/4" />
+        </div>
+        <div class="flex gap-4 flex-wrap mt-4">
+          <div class="placeholder animate-pulse p-4 w-1/4" />
+        </div>
+        <div class="flex gap-4 flex-wrap mt-2">
+          <div class="placeholder animate-pulse p-4 w-1/3" />
+          <div class="placeholder animate-pulse p-4 w-1/2" />
+          <div class="placeholder animate-pulse p-4 w-1/4" />
+          <div class="placeholder animate-pulse p-4 w-1/4" />
+        </div>
+      </div>
+    {/if}
+  </div>
 
-  <div class="card min-w-fit">
+  <div class="card inline-block w-full min-w-fit">
     <div class="p-4 space-y-2">
       <h2 class="h2">Štetje</h2>
       <ScoreCounter
@@ -495,9 +530,9 @@
             <h2 class="h2">Vpiši za</h2>
 
             <div class="flex justify-center">
-              <div class="btn-group variant-filled-primary">
+              <div class="btn-group w-full variant-filled-primary">
                 {#each data.room.player_names as player_name, i}
-                  <button on:click={() => import_counter_klop(i)}>{player_name}</button>
+                  <button class="!px-0 flex-1" on:click={() => import_counter_klop(i)}>{player_name}</button>
                 {/each}
               </div>
             </div>
@@ -517,7 +552,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card inline-block w-full min-w-fit">
     <div class="p-4 space-y-2">
       <h2 class="h2">Povabi v sobo</h2>
       <div class="flex justify-center">

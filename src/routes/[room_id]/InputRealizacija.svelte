@@ -10,12 +10,12 @@
   ];
 </script>
 
-<div class="btn-group variant-soft m-2">
+<div class="btn-group variant-soft m-2 w-full">
   {#each realizacije as realizacija}
     {@const radio_id = `${id}_${Realizacija[realizacija.type]}`}
     <label
       for={radio_id}
-      class={'py-2 px-3 flex items-center ' + (value === realizacija.type ? realizacija.variant : '')}
+      class={'py-2 px-3 flex-1 flex items-center ' + (value === realizacija.type ? realizacija.variant : '')}
     >
       <input hidden type="radio" id={radio_id} bind:group={value} value={realizacija.type} />
       <p>{realizacija.display}</p>

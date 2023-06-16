@@ -199,21 +199,21 @@
 
 <div class="p-4 space-y-4">
   <div class="btn-group variant-soft w-full">
-    <button class="w-1/4" on:click={reset_count}>Ponastavi</button>
-    <button class="w-3/4" on:click={undo_count}>Razveljavi</button>
+    <button class="px-1 flex-none" on:click={reset_count}>Ponastavi</button>
+    <button class="!px-0 flex-1" on:click={undo_count}>Razveljavi</button>
   </div>
   <br />
   <div class="btn-group variant-filled-primary w-full">
-    <button class="w-1/3" on:click={() => count_card(CardType.Pagat)}>Pagat</button>
-    <button class="w-1/3" on:click={() => count_card(CardType.Mond)}>Mond</button>
-    <button class="w-1/3" on:click={() => count_card(CardType.Skis)}>Škis</button>
+    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Pagat)}>Pagat</button>
+    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Mond)}>Mond</button>
+    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Skis)}>Škis</button>
   </div>
   <br />
   <div class="btn-group variant-filled-primary w-full">
-    <button class="w-1/4" on:click={() => count_card(CardType.King)}>Kralj</button>
-    <button class="w-1/4" on:click={() => count_card(CardType.Queen)}>Kraljica</button>
-    <button class="w-1/4" on:click={() => count_card(CardType.Horse)}>Kavalj</button>
-    <button class="w-1/4" on:click={() => count_card(CardType.Knight)}>Fant</button>
+    <button class="!px-0 flex-1" on:click={() => count_card(CardType.King)}>Kralj</button>
+    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Queen)}>Kraljica</button>
+    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Horse)}>Kavalj</button>
+    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Knight)}>Fant</button>
   </div>
   <br />
   <div class="btn-group variant-filled-primary flex justify-center">
