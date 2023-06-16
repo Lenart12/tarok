@@ -1,9 +1,39 @@
 import { create_default_new_round_settings, type GameRoom, type GameState } from './tarok';
 import fs from 'fs';
 
+interface DelayedSave {
+  timeout: NodeJS.Timeout,
+  cb?: () => void,
+}
+
+const save_timeout: { [file_name: string]: DelayedSave } = {};
+
+function save_delayed(file_name: string, data: string) {
+  clearTimeout(save_timeout[file_name]?.timeout);
+
+  const cb = () => {
+    save_timeout[file_name].cb = undefined;
+    fs.writeFileSync(file_name, data);
+    console.log('Saving ', file_name);
+  }
+  save_timeout[file_name] = {
+    cb: cb,
+    timeout: setTimeout(cb, 5000),
+  }
+}
+
+function assert_saved(file_name: string) {
+  if (save_timeout[file_name] !== undefined) {
+    clearTimeout(save_timeout[file_name].timeout);
+    save_timeout[file_name].cb?.()
+  }
+}
+
 export function get_room(room_id: string) {
   try {
-    return JSON.parse(fs.readFileSync(`rooms/${room_id}.json`, 'utf-8')) as GameRoom;
+    const file_name = `rooms/${room_id}.json`;
+    assert_saved(file_name)
+    return JSON.parse(fs.readFileSync(file_name, 'utf-8')) as GameRoom;
   } catch (error) {
     return undefined;
   }
@@ -11,7 +41,9 @@ export function get_room(room_id: string) {
 
 export function get_state(room_id: string) {
   try {
-    return JSON.parse(fs.readFileSync(`rooms/${room_id}-state.json`, 'utf-8')) as GameState;
+    const file_name = `rooms/${room_id}-state.json`
+    assert_saved(file_name)
+    return JSON.parse(fs.readFileSync(file_name, 'utf-8')) as GameState;
   } catch (error) {
     const room = get_room(room_id);
     if (room === undefined) throw new Error('Creating state for room that does not exist ' + room_id);
@@ -23,16 +55,6 @@ export function get_state(room_id: string) {
     save_state(room_id, state);
     return state;
   }
-}
-
-const save_timeout: { [file_name: string]: NodeJS.Timeout } = {};
-function save_delayed(file_name: string, data: string) {
-  clearInterval(save_timeout[file_name]);
-
-  save_timeout[file_name] = setTimeout(() => {
-    fs.writeFileSync(file_name, data);
-    console.log('Saving ', file_name);
-  }, 5000);
 }
 
 export function save_state(room_id: string, state: GameState) {
