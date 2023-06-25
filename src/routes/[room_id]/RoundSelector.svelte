@@ -1,6 +1,6 @@
 <script lang="ts">
   import { RoundType } from '$lib/tarok';
-  export let value: RoundType;
+  export let value: RoundType | undefined;
   const radios = [
     [
       { type: RoundType.Tri, display: 'Tri' },

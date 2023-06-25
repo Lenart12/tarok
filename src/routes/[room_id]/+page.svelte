@@ -32,8 +32,8 @@
   let game_state: GameState | undefined = undefined;
   let old_game_state: GameState | undefined = undefined;
 
-  let round: RoundType;
-  $: round = game_state?.new_round.round_type || RoundType.Rocno;
+  let round: RoundType | undefined;
+  $: round = game_state?.new_round.round_type;
 
   onMount(async () => {
     if ($room_ids.indexOf(data.room.id) === -1) room_ids.set([data.room.id, ...$room_ids]);
@@ -192,8 +192,8 @@
     );
   }
 
-  function show_if_round(current: RoundType, round_type: NewRoundType) {
-    if (game_state === undefined) return true;
+  function show_if_round(current: RoundType | undefined, round_type: NewRoundType) {
+    if (game_state === undefined || current === undefined) return true;
     return round_type_game(current) !== round_type;
   }
 
@@ -284,12 +284,16 @@
       <div class="p-4 space-y-4">
         <RoundSelector bind:value={game_state.new_round.round_type} />
 
-        <hr />
+        <div class:hidden={round === undefined}>
+          <hr />
+        </div>
 
         <div
           class="p-4"
           id="klop"
-          hidden={!show_if_round(round, NewRoundType.Klop) || !show_if_round(round, NewRoundType.Rocno)}
+          hidden={round === undefined ||
+            !show_if_round(round, NewRoundType.Klop) ||
+            !show_if_round(round, NewRoundType.Rocno)}
         >
           <h3 class="h3">Igralec</h3>
 
@@ -348,7 +352,7 @@
           </aside>
         </div>
         <div class="px-4 pb-4 space-y-4" id="osnovno" hidden={show_if_round(round, NewRoundType.Osnovno)}>
-          <div hidden={game_is_solo(player_count, game_state.new_round.round_type)}>
+          <div hidden={game_is_solo(player_count, game_state.new_round.round_type || RoundType.Tri)}>
             <h3 class="h3">Rufan igralec</h3>
 
             <div class="btn-group w-full variant-soft">
@@ -504,7 +508,9 @@
         </div>
 
         <div class="flex justify-center">
-          <button class="btn variant-filled-primary" on:click={submit_round}>Potrdi</button>
+          <button class:hidden={round === undefined} class="btn variant-filled-primary" on:click={submit_round}
+            >Potrdi</button
+          >
         </div>
       </div>
     {:else}

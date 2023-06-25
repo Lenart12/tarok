@@ -69,7 +69,7 @@ export enum NewRoundType {
 }
 
 export interface NewRoundSettings {
-  round_type: RoundType;
+  round_type?: RoundType;
   player: number;
   rocno: NewRoundRocno;
   osnovno: NewRoundOsnovno;
@@ -204,7 +204,7 @@ function create_n_array_of<T>(n: number, i: T) {
 
 export function create_default_new_round_settings(player_count: number) {
   const settings = {
-    round_type: RoundType.Dva,
+    round_type: undefined,
     player: 0,
     rocno: {
       points_change: create_n_array_of(player_count, 0),
@@ -266,8 +266,14 @@ export function round_base_value(round_type: RoundType) {
 }
 
 export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
+  if (new_round.round_type === undefined)
+    throw "Evaluating a round without a type";
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const round_type = new_round.round_type!;
+
   const round = {
-    round_type: new_round.round_type,
+    round_type: round_type,
     primary_player: new_round.player,
   } as GameRound;
 
@@ -310,7 +316,7 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
       igra_opravljena = razlika_str.startsWith('+');
       const razlika = parseInt(razlika_str.substring(1));
 
-      game_value = round_base_value(new_round.round_type);
+      game_value = round_base_value(round_type);
       game_value += razlika;
       if (!igra_opravljena) game_value = -game_value;
 
@@ -322,11 +328,11 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
 
 
     round.points_change[new_round.player] = game_value;
-    if (rufan_igralec !== undefined && !game_is_solo(player_count, new_round.round_type)) {
+    if (rufan_igralec !== undefined && !game_is_solo(player_count, round_type)) {
       round.points_change[rufan_igralec] = game_value;
     }
 
-    const novi_radelci = new_radelc_for_round(new_round.round_type);
+    const novi_radelci = new_radelc_for_round(round_type);
     round.radelc_change = create_n_array_of(player_count, novi_radelci);
 
     if (ima_radelc(new_round.player)) {
@@ -357,15 +363,15 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
     }
 
     round.points_change = round.points_change.map((points, i) => (ima_radelc(i) ? points * 2 : points));
-    round.radelc_change = create_n_array_of(player_count, new_radelc_for_round(new_round.round_type));
+    round.radelc_change = create_n_array_of(player_count, new_radelc_for_round(round_type));
   };
   const evaluate_opravljanje = () => {
     const { opravljeno } = new_round.opravljanje;
 
     round.points_change = create_n_array_of(player_count, 0);
-    round.points_change[new_round.player] = round_base_value(new_round.round_type) * (opravljeno ? 1 : -1);
+    round.points_change[new_round.player] = round_base_value(round_type) * (opravljeno ? 1 : -1);
 
-    const novi_radelci = new_radelc_for_round(new_round.round_type);
+    const novi_radelci = new_radelc_for_round(round_type);
     round.radelc_change = create_n_array_of(player_count, novi_radelci);
 
     if (ima_radelc(new_round.player)) {
@@ -375,7 +381,7 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
     }
   };
 
-  switch (round_type_game(round.round_type)) {
+  switch (round_type_game(round_type)) {
     case NewRoundType.Rocno:
       evaluate_rocno();
       break;
