@@ -53,6 +53,9 @@
       game_state = new_state;
       draw_updated_state();
     });
+    io.on('tarok:new-round', () => {
+      document.getElementById('scoreboard')?.scrollIntoView({ behavior: 'smooth' });
+    });
 
     QRCode.toCanvas(document.getElementById('invite_qr'), window.location.toString());
   });
@@ -132,6 +135,7 @@
     game_state.new_round = create_default_new_round_settings(player_count);
     mixer_right();
     document.getElementById('scoreboard')?.scrollIntoView({ behavior: 'smooth' });
+    io.emit('tarok:new-round', data.room.id);
   }
 
   function undo_round() {

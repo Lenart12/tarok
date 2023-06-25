@@ -20,6 +20,9 @@ export default function inject_socketio(server: http.Server) {
       console.log(socket.id, 'left', room_id);
       socket.leave(room_id);
     });
+    socket.on('tarok:new-round', (room_id) => {
+      socket.to(room_id).emit('tarok:new-round')
+    });
   });
 
   console.log('SocketIO injected');
