@@ -8,8 +8,36 @@
   import img_kaval from '$lib/images/kaval.webp';
   import img_fant from '$lib/images/fant.webp';
   import img_platelctarok from '$lib/images/platelctarok.webp';
+  import { onMount } from 'svelte';
+  import { quintOut } from 'svelte/easing';
+  import { crossfade } from 'svelte/transition';
+  import { flip } from 'svelte/animate';
 
-  let cards = [] as string[];
+  const [send, receive] = crossfade({
+    duration: (d) => Math.sqrt(d * 200),
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    fallback(node, params) {
+      const style = getComputedStyle(node);
+      const transform = style.transform === 'none' ? '' : style.transform;
+
+      return {
+        duration: 600,
+        easing: quintOut,
+        css: (t) => `
+					transform: ${transform} scale(${t});
+					opacity: ${t}
+				`,
+      };
+    },
+  });
+
+  interface CardImg {
+    id: number;
+    src: string;
+    alt: string;
+  }
+  let cards = [] as CardImg[];
   let _points = 0;
   let card_stack = [] as CardType[];
   export let points: number;
@@ -138,7 +166,11 @@
 
     _points += card_value(card) - 2 / 3;
 
-    let new_card = `<img class="w-10 inline-block" src="${card_source}" alt="${card_name}" />`;
+    let new_card = {
+      id: cards.length,
+      src: card_source,
+      alt: card_name,
+    };
     // Add new card to display
     cards = [...cards, new_card];
     card_stack.push(card);
@@ -183,18 +215,33 @@
     return Realizacija.Brez;
   }
 
-  function get_error_message(counts: Counts) {
-    let message = '';
-    message += counts.pagat > 1 ? 'Več kot en pagat!<br />' : '';
-    message += counts.mond > 1 ? 'Več kot en mond!<br />' : '';
-    message += counts.skis > 1 ? 'Več kot en škis!<br />' : '';
-    message += counts.king > 4 ? 'Več kot štirje kralji!<br />' : '';
-    message += counts.queen > 4 ? 'Več kot štiri kraljice!<br />' : '';
-    message += counts.horse > 4 ? 'Več kot štiri kavalji!<br />' : '';
-    message += counts.knight > 4 ? 'Več kot štiri fanti!<br />' : '';
-    message += counts.one > 35 ? 'Več kot 35 platelcev in tarokov!<br />' : '';
-    return message;
+  function limit_reached(counts: Counts, card: CardType) {
+    switch (card) {
+      case CardType.Pagat:
+        return counts.pagat > 1 - 1;
+      case CardType.Mond:
+        return counts.mond > 1 - 1;
+      case CardType.Skis:
+        return counts.skis > 1 - 1;
+      case CardType.King:
+        return counts.king > 4 - 1;
+      case CardType.Queen:
+        return counts.queen > 4 - 1;
+      case CardType.Horse:
+        return counts.horse > 4 - 1;
+      case CardType.Knight:
+        return counts.knight > 4 - 1;
+      case CardType.One:
+        return counts.one > 35 - 1;
+    }
   }
+
+  onMount(() => {
+    // Preload images
+    [img_pagat, img_mond, img_skis, img_kralj, img_baba, img_kaval, img_fant, img_platelctarok].forEach((url) => {
+      new Image().src = url;
+    });
+  });
 </script>
 
 <div class="p-4 space-y-4">
@@ -204,45 +251,64 @@
   </div>
   <br />
   <div class="btn-group variant-filled-primary w-full">
-    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Pagat)}>Pagat</button>
-    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Mond)}>Mond</button>
-    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Skis)}>Škis</button>
+    <button
+      disabled={limit_reached(counts, CardType.Pagat)}
+      class="!px-0 flex-1"
+      on:click={() => count_card(CardType.Pagat)}>Pagat</button
+    >
+    <button
+      disabled={limit_reached(counts, CardType.Mond)}
+      class="!px-0 flex-1"
+      on:click={() => count_card(CardType.Mond)}>Mond</button
+    >
+    <button
+      disabled={limit_reached(counts, CardType.Skis)}
+      class="!px-0 flex-1"
+      on:click={() => count_card(CardType.Skis)}>Škis</button
+    >
   </div>
   <br />
   <div class="btn-group variant-filled-primary w-full">
-    <button class="!px-0 flex-1" on:click={() => count_card(CardType.King)}>Kralj</button>
-    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Queen)}>Kraljica</button>
-    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Horse)}>Kavalj</button>
-    <button class="!px-0 flex-1" on:click={() => count_card(CardType.Knight)}>Fant</button>
+    <button
+      disabled={limit_reached(counts, CardType.King)}
+      class="!px-0 flex-1"
+      on:click={() => count_card(CardType.King)}>Kralj</button
+    >
+    <button
+      disabled={limit_reached(counts, CardType.Queen)}
+      class="!px-0 flex-1"
+      on:click={() => count_card(CardType.Queen)}>Kraljica</button
+    >
+    <button
+      disabled={limit_reached(counts, CardType.Horse)}
+      class="!px-0 flex-1"
+      on:click={() => count_card(CardType.Horse)}>Kavalj</button
+    >
+    <button
+      disabled={limit_reached(counts, CardType.Knight)}
+      class="!px-0 flex-1"
+      on:click={() => count_card(CardType.Knight)}>Fant</button
+    >
   </div>
   <br />
   <div class="btn-group variant-filled-primary flex justify-center">
-    <button class="w-full" on:click={() => count_card(CardType.One)}>Platelc/Tarok</button>
+    <button disabled={limit_reached(counts, CardType.One)} class="w-full" on:click={() => count_card(CardType.One)}
+      >Platelc/Tarok</button
+    >
   </div>
 </div>
 
-{#if get_error_message(counts) !== ''}
-  <aside class="alert variant-filled-error h-max-fit">
-    <div class="alert-message">
-      <!-- eslint-disable-next-line svelte/no-at-html-tags-->
-      <h2 class="h2">{@html get_error_message(counts)}</h2>
-    </div>
-  </aside>
-{/if}
-
-<div />
-
 <div class="flex justify-between gap-4 p-4">
-  <div>
-    <table>
+  <div class="grow-1">
+    <table class="divide-y divide-primary-700">
       <tr>
         <td>Točke</td><td><div class="badge variant-filled-primary">{points}</div></td>
       </tr>
       <tr>
-        <td>Razlika</td><td
-          ><div class="badge variant-filled-primary" class:variant-filled-error={points - 35 < 0}>{razlika}</div>
-          ({points - 35})</td
-        >
+        <td>Razlika</td><td class="whitespace-nowrap">
+          <div class="badge variant-filled-primary" class:variant-filled-error={points - 35 < 0}>{razlika}</div>
+          ({points - 35})
+        </td>
       </tr>
       <tr>
         <td>Kralji</td><td>{realizacija_status(kralji)}</td>
@@ -253,13 +319,31 @@
     </table>
   </div>
 
-  <div>
-    {#each cards as card, i}
+  <div id="stack" class="grid grid-cols-3 gap-2 grow-0">
+    {#each [...cards].reverse() as card (card.id)}
       <!-- eslint-disable-next-line svelte/no-at-html-tags-->
-      {@html card}
-      {#if (i + 1) % 3 == 0 && i > 0}
-        <br />
-      {/if}
+      <img in:receive={{ key: card.id }} out:send={{ key: card.id }} animate:flip src={card.src} alt={card.alt} />
     {/each}
   </div>
 </div>
+
+<style>
+  button:not(:active) {
+    /* now keep red background for 1s */
+    transition: background-color 300ms ease-out;
+  }
+
+  button:active {
+    background: red;
+  }
+  #stack > * {
+    border-radius: 10px;
+  }
+  #stack > :first-child {
+    box-shadow: 0 0 10px red;
+  }
+  #stack > :nth-child(2),
+  #stack > :nth-child(3) {
+    box-shadow: 0 0 10px yellow;
+  }
+</style>
