@@ -53,6 +53,7 @@ export interface NewRoundOsnovno {
   kralj_ultimo: Realizacija;
   pagat_ultimo: Realizacija;
   mondfang?: number;
+  nenapovedan_valat: boolean;
 }
 
 export interface NewRoundOpravljanje {
@@ -212,6 +213,7 @@ export function create_default_new_round_settings(player_count: number) {
     osnovno: {
       razlika: '+0',
       rufan_igralec: undefined,
+      nenapovedan_valat: false,
       kralji: Realizacija.Brez,
       trula: Realizacija.Brez,
       kralj_ultimo: Realizacija.Brez,
@@ -275,10 +277,8 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
     switch (realizacija) {
       case Realizacija.Narejena:
         return tocke;
-        break;
       case Realizacija.Izgubljena:
         return -tocke;
-        break;
     }
     return 0;
   };
@@ -296,29 +296,34 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
     //    round.points_change[new_round.player] *= 2
   };
   const evaluate_osnovno = () => {
-    const { rufan_igralec, kralji, trula, kralj_ultimo, pagat_ultimo, mondfang } = new_round.osnovno;
-    const razlika_str = new_round.osnovno.razlika;
-    const igra_opravljena = razlika_str.startsWith('+');
-    const razlika = parseInt(razlika_str.substring(1));
-
-    let game_value = round_base_value(new_round.round_type);
-    game_value += razlika;
-    if (!igra_opravljena) game_value = -game_value;
-
-    game_value += realiziraj(kralji, 10);
-    game_value += realiziraj(trula, 10);
-    game_value += realiziraj(kralj_ultimo, 10);
-    game_value += realiziraj(pagat_ultimo, 25);
+    const { rufan_igralec, nenapovedan_valat, kralji, trula, kralj_ultimo, pagat_ultimo, mondfang } = new_round.osnovno;
 
     round.points_change = create_n_array_of(player_count, 0);
-    round.points_change[new_round.player] = game_value;
+    let game_value = 0;
+    let igra_opravljena = false;
 
-    if (rufan_igralec !== undefined && !game_is_solo(player_count, new_round.round_type)) {
-      round.points_change[rufan_igralec] = game_value;
+    if (nenapovedan_valat) {
+      igra_opravljena = true;
+      game_value = 250;
+    } else {
+      const razlika_str = new_round.osnovno.razlika;
+      igra_opravljena = razlika_str.startsWith('+');
+      const razlika = parseInt(razlika_str.substring(1));
+
+      game_value = round_base_value(new_round.round_type);
+      game_value += razlika;
+      if (!igra_opravljena) game_value = -game_value;
+
+      game_value += realiziraj(kralji, 10);
+      game_value += realiziraj(trula, 10);
+      game_value += realiziraj(kralj_ultimo, 10);
+      game_value += realiziraj(pagat_ultimo, 25);
     }
 
-    if (mondfang !== undefined) {
-      round.points_change[mondfang] -= 20;
+
+    round.points_change[new_round.player] = game_value;
+    if (rufan_igralec !== undefined && !game_is_solo(player_count, new_round.round_type)) {
+      round.points_change[rufan_igralec] = game_value;
     }
 
     const novi_radelci = new_radelc_for_round(new_round.round_type);
@@ -328,6 +333,10 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
       round.points_change = round.points_change.map((p) => p * 2);
 
       if (igra_opravljena) round.radelc_change[new_round.player] -= 1;
+    }
+
+    if (mondfang !== undefined) {
+      round.points_change[mondfang] -= 20;
     }
   };
   const evaluate_klop = () => {

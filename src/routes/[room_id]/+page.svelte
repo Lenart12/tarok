@@ -381,44 +381,56 @@
             </div>
           </div>
 
-          <div>
-            <h3 class="h3">
-              <label class="label" for="razlika">
-                Razlika
-                <div class="badge variant-filled-primary" class:variant-filled-error={razlika_slider_value < 8}>
-                  {razlika_slider[razlika_slider_value]}
-                </div>
-              </label>
-            </h3>
-            <input
-              class="input"
-              type="range"
-              min="0"
-              max="15"
-              id="razlika"
-              bind:value={razlika_slider_value}
-              on:input={update_razlika_slider}
-            />
-          </div>
+          <h3 class="h3">Nenapovedan valat</h3>
 
-          <div>
-            <h3 class="h3">Trula</h3>
-            <InputRealizacija id="trula" bind:value={game_state.new_round.osnovno.trula} />
-          </div>
+          <SlideToggle
+            name="nenapovedan_valat"
+            bind:checked={game_state.new_round.osnovno.nenapovedan_valat}
+            active="bg-primary-900: dark:bg-primary-300"
+          >
+            Nenapovedan valat {game_state.new_round.osnovno.nenapovedan_valat ? 'uspel' : 'ni uspel'}
+          </SlideToggle>
 
-          <div>
-            <h3 class="h3">Kralji</h3>
-            <InputRealizacija id="kralji" bind:value={game_state.new_round.osnovno.kralji} />
-          </div>
+          <div hidden={game_state.new_round.osnovno.nenapovedan_valat}>
+            <div>
+              <h3 class="h3">
+                <label class="label" for="razlika">
+                  Razlika
+                  <div class="badge variant-filled-primary" class:variant-filled-error={razlika_slider_value < 8}>
+                    {razlika_slider[razlika_slider_value]}
+                  </div>
+                </label>
+              </h3>
+              <input
+                class="input"
+                type="range"
+                min="0"
+                max="15"
+                id="razlika"
+                bind:value={razlika_slider_value}
+                on:input={update_razlika_slider}
+              />
+            </div>
 
-          <div>
-            <h3 class="h3">Pagat ultimo</h3>
-            <InputRealizacija id="pagat_ultimo" bind:value={game_state.new_round.osnovno.pagat_ultimo} />
-          </div>
+            <div>
+              <h3 class="h3">Trula</h3>
+              <InputRealizacija id="trula" bind:value={game_state.new_round.osnovno.trula} />
+            </div>
 
-          <div>
-            <h3 class="h3">Kralj ultimo</h3>
-            <InputRealizacija id="kralj_ultimo" bind:value={game_state.new_round.osnovno.kralj_ultimo} />
+            <div>
+              <h3 class="h3">Kralji</h3>
+              <InputRealizacija id="kralji" bind:value={game_state.new_round.osnovno.kralji} />
+            </div>
+
+            <div>
+              <h3 class="h3">Pagat ultimo</h3>
+              <InputRealizacija id="pagat_ultimo" bind:value={game_state.new_round.osnovno.pagat_ultimo} />
+            </div>
+
+            <div>
+              <h3 class="h3">Kralj ultimo</h3>
+              <InputRealizacija id="kralj_ultimo" bind:value={game_state.new_round.osnovno.kralj_ultimo} />
+            </div>
           </div>
 
           <div>
@@ -481,7 +493,7 @@
           {/if}
         </div>
 
-        <div hidden={show_if_round(round, NewRoundType.Opravljanje)}>
+        <div class="p-4" hidden={show_if_round(round, NewRoundType.Opravljanje)}>
           <SlideToggle
             name="igra_opravljena"
             bind:checked={game_state.new_round.opravljanje.opravljeno}
