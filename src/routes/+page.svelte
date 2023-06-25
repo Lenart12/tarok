@@ -44,9 +44,7 @@
               <a href={room.id}>
                 <dt>
                   <span class="anchor font-bold">{room.title}</span>
-                  <span class="opacity-50 text-sm">
-                    - {new Date(room.created).toLocaleString().replace(/[\s,].+/, '')}</span
-                  >
+                  <span class="opacity-50 text-sm"> - {new Date(room.created).toLocaleDateString()}</span>
                   <button class="ml-4 anchor text-sm opacity-50" on:click={() => unsave_room(room.id)}>Zapusti</button>
                 </dt>
                 <dd class="text-sm opacity-50">
