@@ -260,7 +260,8 @@
             {/each}
           </tr>
         {:else}
-          {#each new Array(4) as r}
+          <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
+          {#each new Array(4) as _, r}
             <tr>
               <td class="text-gray-50/25">{r + 1}</td>
               <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
