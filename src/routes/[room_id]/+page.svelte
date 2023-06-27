@@ -219,6 +219,7 @@
     <div class="p-4">
       <table id="scoreboard" class="divide-y divide-primary-700 w-full">
         <tr>
+          <th class="m-0" />
           {#each data.room.player_names as player_name, i}
             <th class="m-4">
               <span class="relative inline-blcok">
@@ -231,13 +232,15 @@
           {/each}
         </tr>
         <tr>
+          <td class="text-gray-50/25">#</td>
           {#each radelc_total as radelc}
             <td>Rad: {radelc}</td>
           {/each}
         </tr>
         {#if game_state !== undefined}
-          {#each game_state.rounds as round}
+          {#each game_state.rounds as round, r}
             <tr>
+              <td class="text-gray-50/25">{r + 1}</td>
               {#each round.points_change as points, i}
                 <td>
                   {points}
@@ -251,6 +254,7 @@
             </tr>
           {/each}
           <tr>
+            <td />
             {#each points_total as points}
               <td>={points}</td>
             {/each}
@@ -258,7 +262,7 @@
         {:else}
           {#each new Array(4) as _}
             <tr>
-              {#each new Array(4) as _}
+              {#each new Array(5) as _}
                 <td>
                   <span class="placeholder animate-pulse inline-block w-1/2 p-2 mt-1" />
                 </td>
