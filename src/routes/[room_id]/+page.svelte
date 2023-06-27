@@ -260,9 +260,11 @@
             {/each}
           </tr>
         {:else}
-          {#each new Array(4) as _}
+          {#each new Array(4) as r}
             <tr>
-              {#each new Array(5) as _}
+              <td class="text-gray-50/25">{r + 1}</td>
+              <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
+              {#each new Array(4) as _}
                 <td>
                   <span class="placeholder animate-pulse inline-block w-1/2 p-2 mt-1" />
                 </td>
