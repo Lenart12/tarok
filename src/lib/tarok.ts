@@ -71,6 +71,7 @@ export enum NewRoundType {
 export interface NewRoundSettings {
   round_type?: RoundType;
   player: number;
+  mixer: number;
   rocno: NewRoundRocno;
   osnovno: NewRoundOsnovno;
   klop: NewRoundKlop;
@@ -279,6 +280,7 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
 
   const player_count = new_round.rocno.points_change.length;
   const ima_radelc = (player: number) => radelci[player] > 0;
+  const is_not_playing = (player: number) => player_count > 4 && player === new_round.mixer;
   const realiziraj = (realizacija: Realizacija, tocke: number) => {
     switch (realizacija) {
       case Realizacija.Narejena:
@@ -350,20 +352,25 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
     round.primary_player = -1;
 
     round.points_change = create_n_array_of(player_count, 0);
+    round.radelc_change = create_n_array_of(player_count, new_radelc_for_round(round_type));
 
-    if (points.indexOf(0) !== -1) {
-      // Prazen
-      round.points_change[points.indexOf(0)] = 70;
-    } else if (points.findIndex((p) => p >= 35) !== -1) {
-      // Poln
-      round.points_change[points.findIndex((p) => p >= 35)] = -70;
+    const winners = points.reduce((w: number[], p, i) => {
+      if (p === 0 && !is_not_playing(i)) w.push(i);
+      return w;
+    }, []);
+    const losers = points.reduce((l: number[], p, i) => {
+      if (p === 9 && !is_not_playing(i)) l.push(i);
+      return l;
+    }, []);
+
+    if (winners.length !== 0 || losers.length !== 0) {
+      winners.forEach((w) => { round.points_change[w] = 70; if (ima_radelc(w)) round.radelc_change[w]--; });
+      losers.forEach((l) => { round.points_change[l] = -70; });
     } else {
-      // Navadno
-      round.points_change = points.map((p) => -p);
+      round.points_change = points.map((p) => Math.min(Math.max(0, p - 1), 7) * 5);
     }
 
     round.points_change = round.points_change.map((points, i) => (ima_radelc(i) ? points * 2 : points));
-    round.radelc_change = create_n_array_of(player_count, new_radelc_for_round(round_type));
   };
   const evaluate_opravljanje = () => {
     const { opravljeno } = new_round.opravljanje;

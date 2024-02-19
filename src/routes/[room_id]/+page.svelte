@@ -85,6 +85,12 @@
     '+30',
     '+35',
   ];
+  const klop_slider = ['Prazen', '0', '5', '10', '15', '20', '25', '30', '35', 'Poln'];
+  $: klop_vsota = game_state?.new_round.klop.points
+    .map((p) => Math.min(Math.max(0, p - 1), 7) * 5)
+    .reduce((a, v) => a + v);
+  $: klop_je_poln = game_state?.new_round.klop.points.some((p) => p === 9);
+
   let razlika_slider_value: number;
   let counter_points: number;
   let counter_razlika: string;
@@ -121,18 +127,23 @@
     if (game_state === undefined) return;
     game_state.mixer--;
     if (game_state.mixer < 0) game_state.mixer = player_count - 1;
+    if (player_count > 4) game_state.new_round.klop.points[game_state.mixer] = 0;
+    game_state.new_round.mixer = game_state.mixer;
   }
 
   function mixer_right() {
     if (game_state === undefined) return;
     game_state.mixer++;
     if (game_state.mixer >= player_count) game_state.mixer = 0;
+    if (player_count > 4) game_state.new_round.klop.points[game_state.mixer] = 0;
+    game_state.new_round.mixer = game_state.mixer;
   }
 
   function submit_round() {
     if (game_state === undefined) return;
     game_state.rounds.push(evaluate_round(game_state.new_round, radelc_total));
     game_state.new_round = create_default_new_round_settings(player_count);
+    game_state.new_round.mixer = game_state.mixer;
     mixer_right();
     document.getElementById('scoreboard')?.scrollIntoView({ behavior: 'smooth' });
     io.emit('tarok:new-round', data.room.id);
@@ -484,25 +495,29 @@
         <div class="p-4" hidden={show_if_round(round, NewRoundType.Klop)}>
           <h3 class="h3">Klop</h3>
           {#each data.room.player_names as player_name, i}
-            <label class="label" for="klop_{i}"
-              >{player_name}
-              <div class="badge variant-filled-primary">{game_state.new_round.klop.points[i]}</div></label
-            >
-            <input
-              class="input"
-              type="range"
-              step="5"
-              min="0"
-              max="70"
-              id="klop_{i}"
-              bind:value={game_state.new_round.klop.points[i]}
-            />
-            <br />
+            {#if !(player_count > 4 && i === game_state.mixer)}
+              <label class="label" for="klop_{i}"
+                >{player_name}
+                <div class="badge variant-filled-primary">
+                  {klop_slider[game_state.new_round.klop.points[i]]}
+                </div></label
+              >
+              <input
+                class="input"
+                type="range"
+                step="1"
+                min="0"
+                max={klop_slider.length - 1}
+                id="klop_{i}"
+                bind:value={game_state.new_round.klop.points[i]}
+              />
+              <br />
+            {/if}
           {/each}
-          {#if game_state.new_round.klop.points.reduce((a, v) => a + v) !== 70}
+          {#if klop_vsota !== 70 && !klop_je_poln}
             <aside class="alert variant-filled-error">
               <div class="alert-message">
-                <h3 class="h3">Vsota ni 70 ({game_state.new_round.klop.points.reduce((a, v) => a + v)})!</h3>
+                <h3 class="h3">Vsota ni 70 ({klop_vsota})!</h3>
               </div>
             </aside>
           {/if}
