@@ -16,10 +16,11 @@
   import type { GameState } from '$lib/tarok';
   import QRCode from 'qrcode';
   import InputRealizacija from './InputRealizacija.svelte';
+  import Napoved from './Napoved.svelte';
 
   import { persisted } from 'svelte-local-storage-store';
   import RoundSelector from './RoundSelector.svelte';
-  import { SlideToggle, clipboard } from '@skeletonlabs/skeleton';
+  import { Accordion, AccordionItem, SlideToggle, clipboard } from '@skeletonlabs/skeleton';
 
   const room_ids = persisted('rooms', [] as string[]);
 
@@ -145,6 +146,7 @@
     game_state.new_round = create_default_new_round_settings(player_count);
     game_state.new_round.mixer = game_state.mixer;
     mixer_right();
+    game_state.napovedi_open = false;
     document.getElementById('scoreboard')?.scrollIntoView({ behavior: 'smooth' });
     io.emit('tarok:new-round', data.room.id);
   }
@@ -437,6 +439,37 @@
                 on:input={update_razlika_slider}
               />
             </div>
+
+            {#if game_state.new_round.osnovno.napoved !== undefined}
+              <div class="card my-4 variant-filled-surface">
+                <Accordion>
+                  <AccordionItem bind:open={game_state.napovedi_open}>
+                    <svelte:fragment slot="summary"><h3 class="h3">Napovedi</h3></svelte:fragment>
+                    <svelte:fragment slot="content">
+                      <div>
+                        <h3 class="h3">Trula</h3>
+                        <Napoved id="trula" bind:value={game_state.new_round.osnovno.napoved.trula} />
+                      </div>
+
+                      <div>
+                        <h3 class="h3">Kralji</h3>
+                        <Napoved id="kralji" bind:value={game_state.new_round.osnovno.napoved.kralji} />
+                      </div>
+
+                      <div>
+                        <h3 class="h3">Pagat ultimo</h3>
+                        <Napoved id="pagat_ultimo" bind:value={game_state.new_round.osnovno.napoved.pagat_ultimo} />
+                      </div>
+
+                      <div>
+                        <h3 class="h3">Kralj ultimo</h3>
+                        <Napoved id="kralj_ultimo" bind:value={game_state.new_round.osnovno.napoved.kralj_ultimo} />
+                      </div>
+                    </svelte:fragment>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+            {/if}
 
             <div>
               <h3 class="h3">Trula</h3>

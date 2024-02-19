@@ -45,9 +45,22 @@ export enum Realizacija {
   Izgubljena,
 }
 
+export enum Napoved {
+  Nenapovedana,
+  Napovedana,
+}
+
+export interface NewRoundOsnovnoNapoved {
+  kralji: Napoved;
+  trula: Napoved;
+  kralj_ultimo: Napoved;
+  pagat_ultimo: Napoved;
+}
+
 export interface NewRoundOsnovno {
   razlika: string;
   rufan_igralec?: number;
+  napoved: NewRoundOsnovnoNapoved;
   kralji: Realizacija;
   trula: Realizacija;
   kralj_ultimo: Realizacija;
@@ -80,6 +93,7 @@ export interface NewRoundSettings {
 
 export interface GameState {
   mixer: number;
+  napovedi_open: boolean;
   rounds: GameRound[];
   new_round: NewRoundSettings;
 }
@@ -215,6 +229,12 @@ export function create_default_new_round_settings(player_count: number) {
       razlika: '+0',
       rufan_igralec: undefined,
       nenapovedan_valat: false,
+      napoved: {
+        kralji: Napoved.Nenapovedana,
+        trula: Napoved.Nenapovedana,
+        kralj_ultimo: Napoved.Nenapovedana,
+        pagat_ultimo: Napoved.Nenapovedana,
+      },
       kralji: Realizacija.Brez,
       trula: Realizacija.Brez,
       kralj_ultimo: Realizacija.Brez,
@@ -281,14 +301,17 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
   const player_count = new_round.rocno.points_change.length;
   const ima_radelc = (player: number) => radelci[player] > 0;
   const is_not_playing = (player: number) => player_count > 4 && player === new_round.mixer;
-  const realiziraj = (realizacija: Realizacija, tocke: number) => {
+  const realiziraj = (realizacija: Realizacija, napoved: Napoved, tocke: number) => {
+    const je_napovedano = napoved === Napoved.Napovedana;
+    if (je_napovedano) tocke *= 2;
+
     switch (realizacija) {
       case Realizacija.Narejena:
         return tocke;
       case Realizacija.Izgubljena:
         return -tocke;
     }
-    return 0;
+    return je_napovedano ? -tocke : 0;
   };
 
   const evaluate_rocno = () => {
@@ -304,7 +327,7 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
     //    round.points_change[new_round.player] *= 2
   };
   const evaluate_osnovno = () => {
-    const { rufan_igralec, nenapovedan_valat, kralji, trula, kralj_ultimo, pagat_ultimo, mondfang } = new_round.osnovno;
+    const { rufan_igralec, nenapovedan_valat, napoved, kralji, trula, kralj_ultimo, pagat_ultimo, mondfang } = new_round.osnovno;
 
     round.points_change = create_n_array_of(player_count, 0);
     let game_value = 0;
@@ -322,10 +345,10 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
       game_value += razlika;
       if (!igra_opravljena) game_value = -game_value;
 
-      game_value += realiziraj(kralji, 10);
-      game_value += realiziraj(trula, 10);
-      game_value += realiziraj(kralj_ultimo, 10);
-      game_value += realiziraj(pagat_ultimo, 25);
+      game_value += realiziraj(kralji, napoved.kralji, 10);
+      game_value += realiziraj(trula, napoved.trula, 10);
+      game_value += realiziraj(kralj_ultimo, napoved.kralj_ultimo, 10);
+      game_value += realiziraj(pagat_ultimo, napoved.pagat_ultimo, 25);
     }
 
 
