@@ -441,7 +441,7 @@
             </div>
 
             {#if game_state.new_round.osnovno.napoved !== undefined}
-              <div class="card my-4 variant-filled-surface">
+              <div class="card my-4 bg-surface-50-900-token">
                 <Accordion>
                   <AccordionItem bind:open={game_state.napovedi_open}>
                     <svelte:fragment slot="summary"><h3 class="h3">Napovedi</h3></svelte:fragment>

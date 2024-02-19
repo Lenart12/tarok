@@ -9,7 +9,7 @@
   ];
 </script>
 
-<div class="btn-group bg-surface-700 m-2 w-full">
+<div class="btn-group bg-surface-200-700-token m-2 w-full">
   {#each napovedi as napoved}
     {@const radio_id = `${id}_${Napoved[napoved.type]}`}
     <label
