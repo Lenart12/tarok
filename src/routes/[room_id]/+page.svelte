@@ -582,16 +582,16 @@
           </SlideToggle>
         </div>
 
-        <div class:hidden={round === undefined}>
+        <div class="p-4" class:hidden={round === undefined}>
           <div class="card my-4 bg-surface-50-900-token">
             <Accordion>
               <AccordionItem bind:open={game_state.obrazlozitev_open}>
-                <svelte:fragment slot="summary"><h3 class="h3">Obrazložitev</h3></svelte:fragment>
+                <svelte:fragment slot="summary"><h3 class="h3">Pregled točkovanja</h3></svelte:fragment>
                 <svelte:fragment slot="content">
                   <div class="flex justify-center">
                     <div class="inline">
                       <Obrazlozitev
-                        id={game_state.rounds.length}
+                        id={game_state.rounds.length + 1}
                         round={evaluate_round(game_state.new_round, radelc_total)}
                         player_names={data.room.player_names}
                       />
