@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { Napoved } from '$lib/tarok';
+  import { NapovedBonusa } from '$lib/tarok';
   export let id: string;
-  export let value: Napoved;
+  export let value: NapovedBonusa;
 
   const napovedi = [
-    { type: Napoved.Nenapovedana, display: 'Brez', variant: 'variant-filled-secondary' },
-    { type: Napoved.Napovedana, display: 'Napovedano', variant: 'variant-filled-primary' },
+    { type: NapovedBonusa.Brez, display: 'Brez', variant: 'variant-filled-secondary' },
+    { type: NapovedBonusa.Napovedan, display: 'Napovedano', variant: 'variant-filled-primary' },
   ];
 </script>
 
-<div class="btn-group bg-surface-700 m-2 w-full">
+<div class="btn-group bg-surface-200-700-token m-2 w-full">
   {#each napovedi as napoved}
-    {@const radio_id = `${id}_${Napoved[napoved.type]}`}
+    {@const radio_id = `${id}_${NapovedBonusa[napoved.type]}`}
     <label
       for={radio_id}
       class={'py-2 px-3 flex-1 flex items-center ' + (value === napoved.type ? napoved.variant : '')}

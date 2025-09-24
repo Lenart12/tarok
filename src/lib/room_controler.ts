@@ -50,6 +50,7 @@ export function get_state(room_id: string) {
     const state: GameState = {
       mixer: 0,
       napovedi_open: false,
+      obrazlozitev_open: false,
       rounds: [],
       new_round: create_default_new_round_settings(room.player_names.length),
     };
