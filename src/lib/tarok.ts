@@ -388,27 +388,19 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
     round.points_change = create_n_array_of(player_count, 0);
     let game_value = 0;
     let igra_opravljena = false;
+    let radelc_zaradi_valata = false;
 
     if (valat != Realizacija.Brez || napoved.valat !== NapovedValata.Brez) {
       igra_opravljena = valat === Realizacija.Narejena;
       game_value = napoved.valat == NapovedValata.NapovedanBarvni ? 125 : 250;
-      switch (napoved.valat) {
-        case NapovedValata.Brez:
-          break;
-        case NapovedValata.NapovedanBarvni:
-        case NapovedValata.NapovedanValat:
-          switch (valat) {
-            case Realizacija.Narejena:
-              game_value *= 2;
-              break;
-            case Realizacija.Brez:
-              game_value = -game_value;
-              break;
-            case Realizacija.Izgubljena:
-              game_value *= -2;
-              break;
-          }
-          break;
+      radelc_zaradi_valata = napoved.valat !== NapovedValata.Brez;
+
+      if (napoved.valat === NapovedValata.NapovedanValat) {
+        game_value *= 2;
+      }
+
+      if (!igra_opravljena) {
+        game_value = -game_value;
       }
     } else {
       const razlika_str = new_round.osnovno.razlika;
@@ -431,7 +423,7 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
       round.points_change[rufan_igralec] = game_value;
     }
 
-    const novi_radelci = new_radelc_for_round(round_type);
+    const novi_radelci = new_radelc_for_round(round_type) || (radelc_zaradi_valata ? 1 : 0);
     round.radelc_change = create_n_array_of(player_count, novi_radelci);
 
     if (ima_radelc(new_round.player)) {
