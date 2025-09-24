@@ -62,6 +62,45 @@
               </div>
             {/each}
           </div>
+
+          <hr />
+          <h4 class="h4">Začetne točke</h4>
+          <div class="flex w-full content-stretch gap-4 flex-wrap">
+            {#each [...Array(player_count || 0).keys()] as i}
+              <div class="flex-1 min-w-[15rem]">
+                <input
+                  class="input px-2"
+                  type="number"
+                  name="starting_points_{i}"
+                  id="starting_points_{i}"
+                  placeholder="Točke {i + 1}"
+                  value="0"
+                  required
+                />
+                <br />
+              </div>
+            {/each}
+          </div>
+
+          <h4 class="h4">Začetni radelci</h4>
+          <div class="flex w-full content-stretch gap-4 flex-wrap">
+            {#each [...Array(player_count || 0).keys()] as i}
+              <div class="flex-1 min-w-[15rem]">
+                <input
+                  class="input px-2"
+                  type="number"
+                  name="starting_radelci_{i}"
+                  id="starting_radelci_{i}"
+                  placeholder="Radelci {i + 1}"
+                  value="0"
+                  required
+                />
+                <br />
+              </div>
+            {/each}
+          </div>
+
+          <hr />
         {/if}
 
         <p>

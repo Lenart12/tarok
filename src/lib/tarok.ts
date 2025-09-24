@@ -3,6 +3,8 @@ export interface GameRoom {
   title: string;
   created: number;
   player_names: string[];
+  starting_points: number[];
+  starting_radelci: number[];
 }
 
 export enum RoundType {
@@ -112,6 +114,8 @@ export interface GameState {
   mixer: number;
   napovedi_open: boolean;
   obrazlozitev_open: boolean;
+  starting_points: number[];
+  starting_radelci: number[];
   rounds: GameRound[];
   new_round: NewRoundSettings;
 }

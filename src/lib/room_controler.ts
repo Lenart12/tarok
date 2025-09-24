@@ -51,6 +51,8 @@ export function get_state(room_id: string) {
       mixer: 0,
       napovedi_open: false,
       obrazlozitev_open: false,
+      starting_points: room.starting_points,
+      starting_radelci: room.starting_radelci,
       rounds: [],
       new_round: create_default_new_round_settings(room.player_names.length),
     };
@@ -123,13 +125,15 @@ function create_room_id() {
   return room_name;
 }
 
-export function create_room(title: string, player_names: string[]) {
+export function create_room(title: string, player_names: string[], starting_points: number[], starting_radelci: number[]) {
   const room = {} as GameRoom;
 
   room.id = create_room_id();
   room.title = title;
   room.created = Date.now();
   room.player_names = player_names;
+  room.starting_points = starting_points;
+  room.starting_radelci = starting_radelci;
 
   save_room(room);
   console.log(`Created room '${room.id}'`);

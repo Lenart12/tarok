@@ -116,6 +116,8 @@
   function update_scoreboard_total() {
     const radelc = [...new Array(player_count)].fill(0);
     const points = [...new Array(player_count)].fill(0);
+    if (game_state?.starting_points !== undefined) game_state.starting_points.forEach((p, i) => (points[i] = p));
+    if (game_state?.starting_radelci !== undefined) game_state.starting_radelci.forEach((r, i) => (radelc[i] = r));
 
     game_state?.rounds.forEach((round) => {
       radelc.forEach((rad, i) => (radelc[i] = rad + round.radelc_change[i]));
@@ -267,6 +269,20 @@
           {/each}
         </tr>
         {#if game_state !== undefined}
+          {#if game_state.starting_points !== undefined && game_state.starting_radelci !== undefined && (game_state.starting_points.some((p) => p != 0) || game_state.starting_radelci.some((r) => r != 0))}
+            <tr>
+              <td class="text-gray-50/25">@</td>
+              {#each game_state.starting_points as points, i}
+                <td class="text-gray-50/25"
+                  >{points > 0 ? '+' : ''}{points}
+                  {#if game_state.starting_radelci[i] > 0}
+                    + {game_state.starting_radelci[i]}R
+                  {/if}
+                </td>
+              {/each}
+            </tr>
+          {/if}
+
           {#each game_state.rounds as round, r}
             <tr use:popup={{ event: 'click', target: `obrazlozitev-${r}`, placement: 'bottom' }}>
               <td class="text-gray-50/25">{r + 1}</td>
