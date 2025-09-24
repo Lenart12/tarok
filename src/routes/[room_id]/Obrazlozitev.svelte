@@ -9,6 +9,7 @@
     RadelcUsage,
     Realizacija,
     NapovedBonusa,
+    NapovedValata,
   } from '$lib/tarok';
   export let id: number;
   export let round: GameRound;
@@ -26,8 +27,6 @@
         return je_napovedano ? `${ime}: -${vrednost * 2} (napovedano)` : `${ime}: -${vrednost}`;
     }
   };
-
-  $: console.log(round);
 </script>
 
 <div>
@@ -46,12 +45,6 @@
           Rufan igralec: {player_names[round.round.rufan_igralec]}
         {/if}
         <hr />
-        {@const round_value = round_base_value(round.round_type)}
-        {#if 'razlika' in round.round}
-          Vrednost igre: {round.round.razlika[0]}{round_value}
-          <br />
-          Razlika: {round.round.razlika}
-        {/if}
         {@const napoved =
           'napoved' in round.round
             ? round.round.napoved
@@ -60,22 +53,41 @@
                 trula: NapovedBonusa.Brez,
                 kralj_ultimo: NapovedBonusa.Brez,
                 pagat_ultimo: NapovedBonusa.Brez,
+                valat: NapovedBonusa.Brez,
               }}
-        {#if 'trula' in round.round}
-          {@const trula = realizacija(round.round.trula, 'Trula', 10, napoved.trula)}
-          {#if trula !== ''}<br />{trula}{/if}
-        {/if}
-        {#if 'kralji' in round.round}
-          {@const kralji = realizacija(round.round.kralji, 'Kralji', 10, napoved.kralji)}
-          {#if kralji !== ''}<br />{kralji}{/if}
-        {/if}
-        {#if 'kralj_ultimo' in round.round}
-          {@const kralj_ultimo = realizacija(round.round.kralj_ultimo, 'Kralj ultimo', 10, napoved.kralj_ultimo)}
-          {#if kralj_ultimo !== ''}<br />{kralj_ultimo}{/if}
-        {/if}
-        {#if 'pagat_ultimo' in round.round}
-          {@const pagat_ultimo = realizacija(round.round.pagat_ultimo, 'Pagat ultimo', 25, napoved.pagat_ultimo)}
-          {#if pagat_ultimo !== ''}<br />{pagat_ultimo}{/if}
+        {#if ('valat' in round.round && round.round.valat !== Realizacija.Brez) || napoved.valat !== NapovedValata.Brez}
+          {@const igra_opravljena = 'valat' in round.round && round.round.valat === Realizacija.Narejena}
+          {@const game_value = napoved.valat == NapovedValata.NapovedanBarvni ? 125 : 250}
+          {#if napoved.valat === NapovedValata.Brez}
+            {igra_opravljena ? 'Tihi' : 'Kontra'} valat: {igra_opravljena ? '+' : '-'}{game_value}
+          {:else if napoved.valat === NapovedValata.NapovedanBarvni}
+            Barvni valat: {igra_opravljena ? '+' : '-'}{game_value}
+          {:else if napoved.valat === NapovedValata.NapovedanValat}
+            Napovedan valat: {igra_opravljena ? '+' : '-'}{game_value * 2}
+          {/if}
+        {:else}
+          {@const round_value = round_base_value(round.round_type)}
+          {#if 'razlika' in round.round}
+            Vrednost igre: {round.round.razlika[0]}{round_value}
+            <br />
+            Razlika: {round.round.razlika}
+          {/if}
+          {#if 'trula' in round.round}
+            {@const trula = realizacija(round.round.trula, 'Trula', 10, napoved.trula)}
+            {#if trula !== ''}<br />{trula}{/if}
+          {/if}
+          {#if 'kralji' in round.round}
+            {@const kralji = realizacija(round.round.kralji, 'Kralji', 10, napoved.kralji)}
+            {#if kralji !== ''}<br />{kralji}{/if}
+          {/if}
+          {#if 'kralj_ultimo' in round.round}
+            {@const kralj_ultimo = realizacija(round.round.kralj_ultimo, 'Kralj ultimo', 10, napoved.kralj_ultimo)}
+            {#if kralj_ultimo !== ''}<br />{kralj_ultimo}{/if}
+          {/if}
+          {#if 'pagat_ultimo' in round.round}
+            {@const pagat_ultimo = realizacija(round.round.pagat_ultimo, 'Pagat ultimo', 25, napoved.pagat_ultimo)}
+            {#if pagat_ultimo !== ''}<br />{pagat_ultimo}{/if}
+          {/if}
         {/if}
         <hr />
         {#if primary_radelc != RadelcUsage.None}
