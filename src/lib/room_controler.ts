@@ -63,6 +63,9 @@ export function save_state(room_id: string, state: GameState) {
 }
 
 export function save_room(room: GameRoom) {
+  if (!fs.existsSync('rooms')) {
+    fs.mkdirSync('rooms');
+  }
   fs.writeFileSync(`rooms/${room.id}.json`, JSON.stringify(room));
 }
 
