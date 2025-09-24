@@ -10,6 +10,8 @@
     Realizacija,
     NapovedBonusa,
     NapovedValata,
+    kontra_to_multiplier,
+    Kontra,
   } from '$lib/tarok';
   export let id: number;
   export let round: GameRound;
@@ -67,10 +69,14 @@
           {/if}
         {:else}
           {@const round_value = round_base_value(round.round_type)}
+          {@const has_kontra = round.kontra !== undefined && round.kontra !== Kontra.Brez}
+          {@const kontra_multiplier = round.kontra !== undefined ? kontra_to_multiplier(round.kontra) : 1}
           {#if 'razlika' in round.round}
-            Vrednost igre: {round.round.razlika[0]}{round_value}
+            Vrednost igre: {round.round.razlika[0]}{round_value}{has_kontra
+              ? ` ×${kontra_multiplier} (${Kontra[round.kontra]})`
+              : ''}
             <br />
-            Razlika: {round.round.razlika}
+            Razlika: {round.round.razlika}{has_kontra ? ` ×${kontra_multiplier} (${Kontra[round.kontra]})` : ''}
           {/if}
           {#if 'trula' in round.round}
             {@const trula = realizacija(round.round.trula, 'Trula', 10, napoved.trula)}
@@ -121,9 +127,13 @@
       {:else if round_type === NewRoundType.Opravljanje}
         {#if 'opravljeno' in round.round}
           {@const round_value = round_base_value(round.round_type)}
+          {@const has_kontra = round.kontra !== undefined && round.kontra !== Kontra.Brez}
+          {@const kontra_multiplier = round.kontra !== undefined ? kontra_to_multiplier(round.kontra) : 1}
           Igralec: {player_names[round.primary_player]}
           <br />
-          Igra {round.round.opravljeno ? 'je' : 'ni'} opravljena: {round_value > 0 ? '+' : ''}{round_value}
+          Igra {round.round.opravljeno ? 'je' : 'ni'} opravljena: {round.round.opravljeno
+            ? '+'
+            : '-'}{round_value}{has_kontra ? ` ×${kontra_multiplier} (${Kontra[round.kontra]})` : ''}
           {#if primary_radelc != RadelcUsage.None}
             <br />
             Radelc uporabljen{primary_radelc == RadelcUsage.Used ? ' in izbrisan' : ''}: x2

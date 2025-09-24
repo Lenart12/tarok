@@ -38,6 +38,7 @@ export interface GameRound {
   points_change: number[];
   radelc_change: number[];
   round: NewRoundRocno | NewRoundKlop | NewRoundOsnovno | NewRoundOpravljanje;
+  kontra: Kontra;
   koriscen_radelc: RadelcUsage[];
 }
 
@@ -56,6 +57,24 @@ export enum Realizacija {
   Brez,
   Izgubljena,
 }
+
+export enum Kontra {
+  Brez,
+  Kontra,
+  Rekontra,
+  Subkontra,
+  Mordkontra,
+}
+
+export const kontra_to_multiplier = (k: Kontra) => {
+  switch (k) {
+    case Kontra.Brez: return 1;
+    case Kontra.Kontra: return 2;
+    case Kontra.Rekontra: return 4;
+    case Kontra.Subkontra: return 8;
+    case Kontra.Mordkontra: return 16;
+  }
+};
 
 export enum NapovedBonusa {
   Brez,
@@ -108,6 +127,7 @@ export interface NewRoundSettings {
   osnovno: NewRoundOsnovno;
   klop: NewRoundKlop;
   opravljanje: NewRoundOpravljanje;
+  kontra: Kontra;
 }
 
 export interface GameState {
@@ -305,6 +325,7 @@ export function create_default_new_round_settings(player_count: number) {
     opravljanje: {
       opravljeno: false,
     },
+    kontra: Kontra.Brez,
   } as NewRoundSettings;
   return settings;
 }
@@ -373,6 +394,9 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
 
   round.koriscen_radelc = create_n_array_of(player_count, RadelcUsage.None);
 
+  const kontra_multiplier = kontra_to_multiplier(new_round.kontra);
+  round.kontra = Kontra.Brez;
+
   const evaluate_rocno = () => {
     round.points_change = structuredClone(new_round.rocno.points_change);
     round.radelc_change = structuredClone(new_round.rocno.radelc_change);
@@ -394,6 +418,8 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
     let igra_opravljena = false;
     let radelc_zaradi_valata = false;
 
+    round.kontra = new_round.kontra;
+
     if (valat != Realizacija.Brez || napoved.valat !== NapovedValata.Brez) {
       igra_opravljena = valat === Realizacija.Narejena;
       game_value = napoved.valat == NapovedValata.NapovedanBarvni ? 125 : 250;
@@ -406,6 +432,8 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
       if (!igra_opravljena) {
         game_value = -game_value;
       }
+
+      game_value *= kontra_multiplier;
     } else {
       const razlika_str = new_round.osnovno.razlika;
       igra_opravljena = razlika_str.startsWith('+');
@@ -414,6 +442,8 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
       game_value = round_base_value(round_type);
       game_value += razlika;
       if (!igra_opravljena) game_value = -game_value;
+
+      game_value *= kontra_multiplier;
 
       game_value += realiziraj(kralji, napoved.kralji, 10);
       game_value += realiziraj(trula, napoved.trula, 10);
@@ -480,8 +510,10 @@ export function evaluate_round(new_round: NewRoundSettings, radelci: number[]) {
   const evaluate_opravljanje = () => {
     const { opravljeno } = new_round.opravljanje;
 
+    round.kontra = new_round.kontra;
+
     round.points_change = create_n_array_of(player_count, 0);
-    round.points_change[new_round.player] = round_base_value(round_type) * (opravljeno ? 1 : -1);
+    round.points_change[new_round.player] = round_base_value(round_type) * (opravljeno ? 1 : -1) * kontra_multiplier;
 
     const novi_radelci = new_radelc_for_round(round_type);
     round.radelc_change = create_n_array_of(player_count, novi_radelci);

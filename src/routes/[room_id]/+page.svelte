@@ -26,6 +26,7 @@
   import RoundSelector from './RoundSelector.svelte';
   import { Accordion, AccordionItem, SlideToggle, clipboard, popup } from '@skeletonlabs/skeleton';
   import NapovedValataSelect from './NapovedValataSelect.svelte';
+  import KontraSelect from './KontraSelect.svelte';
 
   const room_ids = persisted('rooms', [] as string[]);
 
@@ -628,6 +629,11 @@
           >
             Igra {game_state.new_round.opravljanje.opravljeno ? 'opravljena' : 'ni opravljena'}
           </SlideToggle>
+        </div>
+
+        <div class="p-4" hidden={!show_if_round(round, NewRoundType.Klop) || !show_if_round(round, NewRoundType.Rocno)}>
+          <h3 class="h3">Kontra</h3>
+          <KontraSelect id="kontra" bind:value={game_state.new_round.kontra} />
         </div>
 
         <div class="p-4" class:hidden={round === undefined}>
