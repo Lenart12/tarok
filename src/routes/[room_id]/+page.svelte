@@ -14,6 +14,7 @@
     round_type_shorthand,
     klop_slider,
     NapovedValata,
+    NapovedBonusa,
   } from '$lib/tarok';
   import type { GameState } from '$lib/tarok';
   import QRCode from 'qrcode';
@@ -100,6 +101,17 @@
   let counter_razlika: string;
   let counter_kings: Realizacija;
   let counter_trula: Realizacija;
+
+  let disable_brez_trula: boolean;
+  $: disable_brez_trula = game_state?.new_round.osnovno.napoved.trula !== NapovedBonusa.Brez;
+  let disable_brez_kralji: boolean;
+  $: disable_brez_kralji = game_state?.new_round.osnovno.napoved.kralji !== NapovedBonusa.Brez;
+  let disable_brez_pagat_ultimo: boolean;
+  $: disable_brez_pagat_ultimo = game_state?.new_round.osnovno.napoved.pagat_ultimo !== NapovedBonusa.Brez;
+  let disable_brez_kralj_ultimo: boolean;
+  $: disable_brez_kralj_ultimo = game_state?.new_round.osnovno.napoved.kralj_ultimo !== NapovedBonusa.Brez;
+  let disable_brez_valat: boolean;
+  $: disable_brez_valat = game_state?.new_round.osnovno.napoved.valat !== NapovedValata.Brez;
 
   function update_scoreboard_total() {
     const radelc = [...new Array(player_count)].fill(0);
@@ -417,7 +429,7 @@
             </div>
           </div>
 
-          {#if game_state.new_round.osnovno.napoved.valat === NapovedValata.Brez}
+          {#if game_state.new_round.osnovno.napoved.valat === NapovedValata.Brez && game_state.new_round.osnovno.valat === Realizacija.Brez}
             <div>
               <h3 class="h3">
                 <label class="label" for="razlika">
@@ -444,7 +456,7 @@
               <AccordionItem bind:open={game_state.napovedi_open}>
                 <svelte:fragment slot="summary"><h3 class="h3">Napovedi</h3></svelte:fragment>
                 <svelte:fragment slot="content">
-                  {#if game_state.new_round.osnovno.napoved.valat === NapovedValata.Brez}
+                  {#if game_state.new_round.osnovno.napoved.valat === NapovedValata.Brez && game_state.new_round.osnovno.valat === Realizacija.Brez}
                     <div>
                       <h3 class="h3">Trula</h3>
                       <NapovedBonusaSelect id="trula" bind:value={game_state.new_round.osnovno.napoved.trula} />
@@ -481,31 +493,51 @@
             </Accordion>
           </div>
 
-          {#if game_state.new_round.osnovno.napoved.valat === NapovedValata.Brez}
+          {#if game_state.new_round.osnovno.napoved.valat === NapovedValata.Brez && game_state.new_round.osnovno.valat === Realizacija.Brez}
             <div>
               <h3 class="h3">Trula</h3>
-              <InputRealizacija id="trula" bind:value={game_state.new_round.osnovno.trula} />
+              <InputRealizacija
+                id="ir_trula"
+                bind:value={game_state.new_round.osnovno.trula}
+                bind:disable_brez={disable_brez_trula}
+              />
             </div>
 
             <div>
               <h3 class="h3">Kralji</h3>
-              <InputRealizacija id="kralji" bind:value={game_state.new_round.osnovno.kralji} />
+              <InputRealizacija
+                id="ir_kralji"
+                bind:value={game_state.new_round.osnovno.kralji}
+                bind:disable_brez={disable_brez_kralji}
+              />
             </div>
 
             <div>
               <h3 class="h3">Pagat ultimo</h3>
-              <InputRealizacija id="pagat_ultimo" bind:value={game_state.new_round.osnovno.pagat_ultimo} />
+              <InputRealizacija
+                id="ir_pagat_ultimo"
+                bind:value={game_state.new_round.osnovno.pagat_ultimo}
+                bind:disable_brez={disable_brez_pagat_ultimo}
+              />
             </div>
 
             <div>
               <h3 class="h3">Kralj ultimo</h3>
-              <InputRealizacija id="kralj_ultimo" bind:value={game_state.new_round.osnovno.kralj_ultimo} />
+              <InputRealizacija
+                id="ir_kralj_ultimo"
+                bind:value={game_state.new_round.osnovno.kralj_ultimo}
+                bind:disable_brez={disable_brez_kralj_ultimo}
+              />
             </div>
           {/if}
 
           <div>
             <h3 class="h3">Valat</h3>
-            <InputRealizacija id="valat" bind:value={game_state.new_round.osnovno.valat} />
+            <InputRealizacija
+              id="ir_valat"
+              bind:value={game_state.new_round.osnovno.valat}
+              bind:disable_brez={disable_brez_valat}
+            />
           </div>
 
           <div>
