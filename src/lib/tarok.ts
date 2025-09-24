@@ -162,7 +162,7 @@ export function round_type_name(round_type: RoundType) {
     case RoundType.Pikolo:
       return 'Pikolo';
     case RoundType.SoloTri:
-      return 'Solor tri';
+      return 'Solo tri';
     case RoundType.SoloDva:
       return 'Solo dva';
     case RoundType.SoloEna:
