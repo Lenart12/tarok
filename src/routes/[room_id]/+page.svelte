@@ -12,15 +12,19 @@
     game_is_solo,
     round_type_game,
     round_type_shorthand,
+    klop_slider,
+    NapovedValata,
   } from '$lib/tarok';
   import type { GameState } from '$lib/tarok';
   import QRCode from 'qrcode';
   import InputRealizacija from './InputRealizacija.svelte';
-  import Napoved from './Napoved.svelte';
+  import NapovedBonusaSelect from './NapovedBonusaSelect.svelte';
+  import Obrazlozitev from './Obrazlozitev.svelte';
 
   import { persisted } from 'svelte-local-storage-store';
   import RoundSelector from './RoundSelector.svelte';
-  import { Accordion, AccordionItem, SlideToggle, clipboard } from '@skeletonlabs/skeleton';
+  import { Accordion, AccordionItem, SlideToggle, clipboard, popup } from '@skeletonlabs/skeleton';
+  import NapovedValataSelect from './NapovedValataSelect.svelte';
 
   const room_ids = persisted('rooms', [] as string[]);
 
@@ -86,7 +90,6 @@
     '+30',
     '+35',
   ];
-  const klop_slider = ['Prazen', '0', '5', '10', '15', '20', '25', '30', '35', 'Poln'];
   $: klop_vsota = game_state?.new_round.klop.points
     .map((p) => Math.min(Math.max(0, p - 1), 7) * 5)
     .reduce((a, v) => a + v);
@@ -147,6 +150,7 @@
     game_state.new_round.mixer = game_state.mixer;
     mixer_right();
     game_state.napovedi_open = false;
+    game_state.obrazlozitev_open = false;
     document.getElementById('scoreboard')?.scrollIntoView({ behavior: 'smooth' });
     io.emit('tarok:new-round', data.room.id);
   }
@@ -252,7 +256,7 @@
         </tr>
         {#if game_state !== undefined}
           {#each game_state.rounds as round, r}
-            <tr>
+            <tr use:popup={{ event: 'click', target: `obrazlozitev-${r}`, placement: 'bottom' }}>
               <td class="text-gray-50/25">{r + 1}</td>
               {#each round.points_change as points, i}
                 <td>
@@ -264,6 +268,10 @@
                   {/if}
                 </td>
               {/each}
+              <div class="card p-4 shadow-xl z-10 bg-surface-200-700-token" data-popup={`obrazlozitev-${r}`}>
+                <Obrazlozitev id={r + 1} {round} player_names={data.room.player_names} />
+                <div class="arrow bg-surface-200-700-token" />
+              </div>
             </tr>
           {/each}
           <tr>
@@ -409,17 +417,7 @@
             </div>
           </div>
 
-          <h3 class="h3">Nenapovedan valat</h3>
-
-          <SlideToggle
-            name="nenapovedan_valat"
-            bind:checked={game_state.new_round.osnovno.nenapovedan_valat}
-            active="bg-primary-900: dark:bg-primary-300"
-          >
-            Nenapovedan valat {game_state.new_round.osnovno.nenapovedan_valat ? 'uspel' : 'ni uspel'}
-          </SlideToggle>
-
-          <div hidden={game_state.new_round.osnovno.nenapovedan_valat}>
+          {#if game_state.new_round.osnovno.napoved.valat === NapovedValata.Brez}
             <div>
               <h3 class="h3">
                 <label class="label" for="razlika">
@@ -439,38 +437,51 @@
                 on:input={update_razlika_slider}
               />
             </div>
+          {/if}
 
-            {#if game_state.new_round.osnovno.napoved !== undefined}
-              <div class="card my-4 bg-surface-50-900-token">
-                <Accordion>
-                  <AccordionItem bind:open={game_state.napovedi_open}>
-                    <svelte:fragment slot="summary"><h3 class="h3">Napovedi</h3></svelte:fragment>
-                    <svelte:fragment slot="content">
-                      <div>
-                        <h3 class="h3">Trula</h3>
-                        <Napoved id="trula" bind:value={game_state.new_round.osnovno.napoved.trula} />
-                      </div>
+          <div class="card my-4 bg-surface-50-900-token">
+            <Accordion>
+              <AccordionItem bind:open={game_state.napovedi_open}>
+                <svelte:fragment slot="summary"><h3 class="h3">Napovedi</h3></svelte:fragment>
+                <svelte:fragment slot="content">
+                  {#if game_state.new_round.osnovno.napoved.valat === NapovedValata.Brez}
+                    <div>
+                      <h3 class="h3">Trula</h3>
+                      <NapovedBonusaSelect id="trula" bind:value={game_state.new_round.osnovno.napoved.trula} />
+                    </div>
 
-                      <div>
-                        <h3 class="h3">Kralji</h3>
-                        <Napoved id="kralji" bind:value={game_state.new_round.osnovno.napoved.kralji} />
-                      </div>
+                    <div>
+                      <h3 class="h3">Kralji</h3>
+                      <NapovedBonusaSelect id="kralji" bind:value={game_state.new_round.osnovno.napoved.kralji} />
+                    </div>
 
-                      <div>
-                        <h3 class="h3">Pagat ultimo</h3>
-                        <Napoved id="pagat_ultimo" bind:value={game_state.new_round.osnovno.napoved.pagat_ultimo} />
-                      </div>
+                    <div>
+                      <h3 class="h3">Pagat ultimo</h3>
+                      <NapovedBonusaSelect
+                        id="pagat_ultimo"
+                        bind:value={game_state.new_round.osnovno.napoved.pagat_ultimo}
+                      />
+                    </div>
 
-                      <div>
-                        <h3 class="h3">Kralj ultimo</h3>
-                        <Napoved id="kralj_ultimo" bind:value={game_state.new_round.osnovno.napoved.kralj_ultimo} />
-                      </div>
-                    </svelte:fragment>
-                  </AccordionItem>
-                </Accordion>
-              </div>
-            {/if}
+                    <div>
+                      <h3 class="h3">Kralj ultimo</h3>
+                      <NapovedBonusaSelect
+                        id="kralj_ultimo"
+                        bind:value={game_state.new_round.osnovno.napoved.kralj_ultimo}
+                      />
+                    </div>
+                  {/if}
 
+                  <div>
+                    <h3 class="h3">Valat</h3>
+                    <NapovedValataSelect id="napoved_valata" bind:value={game_state.new_round.osnovno.napoved.valat} />
+                  </div>
+                </svelte:fragment>
+              </AccordionItem>
+            </Accordion>
+          </div>
+
+          {#if game_state.new_round.osnovno.napoved.valat === NapovedValata.Brez}
             <div>
               <h3 class="h3">Trula</h3>
               <InputRealizacija id="trula" bind:value={game_state.new_round.osnovno.trula} />
@@ -490,6 +501,11 @@
               <h3 class="h3">Kralj ultimo</h3>
               <InputRealizacija id="kralj_ultimo" bind:value={game_state.new_round.osnovno.kralj_ultimo} />
             </div>
+          {/if}
+
+          <div>
+            <h3 class="h3">Valat</h3>
+            <InputRealizacija id="valat" bind:value={game_state.new_round.osnovno.valat} />
           </div>
 
           <div>
@@ -566,10 +582,28 @@
           </SlideToggle>
         </div>
 
-        <div class="flex justify-center">
-          <button class:hidden={round === undefined} class="btn variant-filled-primary" on:click={submit_round}
-            >Potrdi</button
-          >
+        <div class:hidden={round === undefined}>
+          <div class="card my-4 bg-surface-50-900-token">
+            <Accordion>
+              <AccordionItem bind:open={game_state.obrazlozitev_open}>
+                <svelte:fragment slot="summary"><h3 class="h3">Obrazložitev</h3></svelte:fragment>
+                <svelte:fragment slot="content">
+                  <div class="flex justify-center">
+                    <div class="inline">
+                      <Obrazlozitev
+                        id={game_state.rounds.length}
+                        round={evaluate_round(game_state.new_round, radelc_total)}
+                        player_names={data.room.player_names}
+                      />
+                    </div>
+                  </div>
+                </svelte:fragment>
+              </AccordionItem>
+            </Accordion>
+          </div>
+          <div class="flex justify-center">
+            <button class="btn variant-filled-primary" on:click={submit_round}>Potrdi</button>
+          </div>
         </div>
       </div>
     {:else}
