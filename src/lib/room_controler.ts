@@ -51,8 +51,6 @@ export function get_state(room_id: string) {
       mixer: 0,
       napovedi_open: false,
       obrazlozitev_open: false,
-      starting_points: room.starting_points,
-      starting_radelci: room.starting_radelci,
       rounds: [],
       new_round: create_default_new_round_settings(room.player_names.length),
     };
