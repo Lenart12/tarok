@@ -17,6 +17,8 @@
   export let round: GameRound;
   export let player_names: string[];
 
+  const player_name_or_deleted = (i: number) => (i >= 0 && i < player_names.length ? player_names[i] : '(izbrisan igralec)');
+
   const realizacija = (realizacija: Realizacija, ime: string, vrednost: number, napoved: NapovedBonusa) => {
     const je_napovedano = napoved === NapovedBonusa.Napovedan;
 
@@ -37,14 +39,14 @@
     <h3 class="h3"><span class="text-gray-50/25">#{id}</span> {round_type_name(round.round_type)}</h3>
     <h4 class="h4">Obrazložitev</h4>
     {#if round.round !== undefined}
-      {@const primary_radelc = round.koriscen_radelc[round.primary_player]}
+      {@const primary_radelc = round.primary_player >= 0 ? round.koriscen_radelc[round.primary_player] : RadelcUsage.None}
       {#if round_type === NewRoundType.Rocno}
         Ročni vpis podatkov
       {:else if round_type === NewRoundType.Osnovno}
-        Igralec: {player_names[round.primary_player]}
+        Igralec: {player_name_or_deleted(round.primary_player)}
         {#if 'rufan_igralec' in round.round && round.round.rufan_igralec !== undefined}
           <br />
-          Rufan igralec: {player_names[round.round.rufan_igralec]}
+          Rufan igralec: {player_name_or_deleted(round.round.rufan_igralec)}
         {/if}
         <hr />
         {@const napoved =
@@ -105,7 +107,7 @@
         {/if}
 
         {#if 'mondfang' in round.round && round.round.mondfang !== undefined}
-          Mond vzet: {player_names[round.round.mondfang]}
+          Mond vzet: {player_name_or_deleted(round.round.mondfang)}
         {/if}
       {:else if round_type === NewRoundType.Klop}
         {#if 'points' in round.round}
@@ -129,7 +131,7 @@
           {@const round_value = round_base_value(round.round_type)}
           {@const has_kontra = round.kontra !== undefined && round.kontra !== Kontra.Brez}
           {@const kontra_multiplier = round.kontra !== undefined ? kontra_to_multiplier(round.kontra) : 1}
-          Igralec: {player_names[round.primary_player]}
+          Igralec: {player_name_or_deleted(round.primary_player)}
           <br />
           Igra {round.round.opravljeno ? 'je' : 'ni'} opravljena: {round.round.opravljeno
             ? '+'
@@ -142,7 +144,7 @@
         <br />
       {/if}
     {:else if round_type === NewRoundType.Renons}
-      Renons: {player_names[round.primary_player]}
+      Renons: {player_name_or_deleted(round.primary_player)}
       <br />
       Vrednost: -70
     {:else}

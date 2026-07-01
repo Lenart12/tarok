@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import type * as http from 'node:http';
-import { get_state, save_state } from './room_controler';
+import { get_room, get_state, save_room, save_state } from './room_controler';
 
 export default function inject_socketio(server: http.Server) {
   const io = new Server(server, { cors: { origin: '*' } });
@@ -11,10 +11,17 @@ export default function inject_socketio(server: http.Server) {
       console.log(socket.id, 'updates state for room_id', room_id);
       socket.to(room_id).emit('tarok:new-state', state);
     });
+    socket.on('tarok:update-room', (room, room_id) => {
+      save_room(room);
+      console.log(socket.id, 'updates room', room_id);
+      socket.to(room_id).emit('tarok:new-room', room);
+    });
     socket.on('tarok:join-room', (room_id) => {
       console.log(socket.id, 'joined', room_id);
       socket.join(room_id);
       socket.emit('tarok:new-state', get_state(room_id));
+      const room = get_room(room_id);
+      if (room !== undefined) socket.emit('tarok:new-room', room);
     });
     socket.on('tarok:leave-room', (room_id) => {
       console.log(socket.id, 'left', room_id);

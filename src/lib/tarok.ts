@@ -130,6 +130,14 @@ export interface NewRoundSettings {
   kontra: Kontra;
 }
 
+export interface EditPlayerRow {
+  key: number;
+  original_index: number | null;
+  name: string;
+  points: number;
+  radelci: number;
+}
+
 export interface GameState {
   mixer: number;
   napovedi_open: boolean;
@@ -138,6 +146,8 @@ export interface GameState {
   starting_radelci: number[];
   rounds: GameRound[];
   new_round: NewRoundSettings;
+  editing_players: boolean;
+  edit_rows: EditPlayerRow[];
 }
 
 export enum CardType {

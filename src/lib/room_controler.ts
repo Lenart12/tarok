@@ -53,6 +53,8 @@ export function get_state(room_id: string) {
       obrazlozitev_open: false,
       rounds: [],
       new_round: create_default_new_round_settings(room.player_names.length),
+      editing_players: false,
+      edit_rows: [],
     };
     save_state(room_id, state);
     return state;

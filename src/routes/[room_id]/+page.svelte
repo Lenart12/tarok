@@ -1,12 +1,15 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { onMount, onDestroy } from 'svelte';
+  import { flip } from 'svelte/animate';
+  import { fade } from 'svelte/transition';
   import { io } from '$lib/game_connection_client';
   import ScoreCounter from './ScoreCounter.svelte';
   import {
     NewRoundType,
     Realizacija,
     RoundType,
+    RadelcUsage,
     create_default_new_round_settings,
     evaluate_round,
     game_is_solo,
@@ -16,7 +19,7 @@
     NapovedValata,
     NapovedBonusa,
   } from '$lib/tarok';
-  import type { GameState } from '$lib/tarok';
+  import type { GameState, GameRound, NewRoundRocno, NewRoundKlop, NewRoundOsnovno } from '$lib/tarok';
   import QRCode from 'qrcode';
   import InputRealizacija from './InputRealizacija.svelte';
   import NapovedBonusaSelect from './NapovedBonusaSelect.svelte';
@@ -32,7 +35,8 @@
 
   export let data;
 
-  const player_count = data.room.player_names.length;
+  let player_count: number;
+  $: player_count = data.room.player_names.length;
   let radelc_total = [] as number[];
   let points_total = [] as number[];
 
@@ -62,6 +66,9 @@
     });
     io.on('tarok:new-round', () => {
       document.getElementById('scoreboard')?.scrollIntoView({ behavior: 'smooth' });
+    });
+    io.on('tarok:new-room', (new_room) => {
+      data = { ...data, room: new_room };
     });
 
     QRCode.toCanvas(document.getElementById('invite_qr'), window.location.toString());
@@ -233,6 +240,154 @@
     return round_type_game(current) !== round_type;
   }
 
+  let edit_error: string | undefined;
+
+  function next_edit_row_key() {
+    if (game_state === undefined) return 0;
+    return game_state.edit_rows.reduce((max, r) => Math.max(max, r.key), -1) + 1;
+  }
+
+  function start_edit_players() {
+    if (game_state === undefined) return;
+    game_state.edit_rows = data.room.player_names.map((name, i) => ({
+      key: i,
+      original_index: i,
+      name,
+      points: data.room.starting_points[i] ?? 0,
+      radelci: data.room.starting_radelci[i] ?? 0,
+    }));
+    edit_error = undefined;
+    game_state.editing_players = true;
+  }
+
+  function cancel_edit_players() {
+    if (game_state === undefined) return;
+    game_state.editing_players = false;
+  }
+
+  function add_edit_row() {
+    if (game_state === undefined) return;
+    game_state.edit_rows = [
+      ...game_state.edit_rows,
+      { key: next_edit_row_key(), original_index: null, name: '', points: 0, radelci: 0 },
+    ];
+  }
+
+  function remove_edit_row(i: number) {
+    if (game_state === undefined) return;
+    game_state.edit_rows = game_state.edit_rows.filter((_, idx) => idx !== i);
+  }
+
+  function move_edit_row(i: number, dir: -1 | 1) {
+    if (game_state === undefined) return;
+    const j = i + dir;
+    if (j < 0 || j >= game_state.edit_rows.length) return;
+    const rows = [...game_state.edit_rows];
+    [rows[i], rows[j]] = [rows[j], rows[i]];
+    game_state.edit_rows = rows;
+  }
+
+  function remap_indexed_array<T>(arr: T[], new_index_of_old: number[], new_count: number, default_value: T): T[] {
+    const result = new Array(new_count).fill(default_value) as T[];
+    arr.forEach((value, old_i) => {
+      const new_i = new_index_of_old[old_i];
+      if (new_i !== -1) result[new_i] = value;
+    });
+    return result;
+  }
+
+  function remap_player_index(i: number | undefined, new_index_of_old: number[]): number | undefined {
+    if (i === undefined || i < 0) return i;
+    const new_i = new_index_of_old[i];
+    return new_i === -1 ? undefined : new_i;
+  }
+
+  function migrate_round(round: GameRound, new_index_of_old: number[], new_count: number): GameRound {
+    const migrated = { ...round };
+    migrated.points_change = remap_indexed_array(round.points_change, new_index_of_old, new_count, 0);
+    migrated.radelc_change = remap_indexed_array(round.radelc_change, new_index_of_old, new_count, 0);
+    migrated.koriscen_radelc = remap_indexed_array(round.koriscen_radelc, new_index_of_old, new_count, RadelcUsage.None);
+    migrated.primary_player = remap_player_index(round.primary_player, new_index_of_old) ?? -1;
+
+    switch (round_type_game(round.round_type)) {
+      case NewRoundType.Rocno: {
+        const r = round.round as NewRoundRocno;
+        migrated.round = {
+          points_change: remap_indexed_array(r.points_change, new_index_of_old, new_count, 0),
+          radelc_change: remap_indexed_array(r.radelc_change, new_index_of_old, new_count, 0),
+        };
+        break;
+      }
+      case NewRoundType.Klop: {
+        const r = round.round as NewRoundKlop;
+        migrated.round = { points: remap_indexed_array(r.points, new_index_of_old, new_count, 0) };
+        break;
+      }
+      case NewRoundType.Osnovno: {
+        const r = round.round as NewRoundOsnovno;
+        migrated.round = {
+          ...r,
+          rufan_igralec: remap_player_index(r.rufan_igralec, new_index_of_old),
+          mondfang: remap_player_index(r.mondfang, new_index_of_old),
+        };
+        break;
+      }
+      default:
+        migrated.round = round.round;
+    }
+    return migrated;
+  }
+
+  function save_edit_players() {
+    if (game_state === undefined) return;
+    edit_error = undefined;
+
+    const edit_rows = game_state.edit_rows;
+
+    if (edit_rows.length < 3 || edit_rows.length > 5) {
+      edit_error = 'Število igralcev mora biti med 3 in 5.';
+      return;
+    }
+    const names = edit_rows.map((r) => r.name.trim());
+    if (names.some((n) => n.length === 0)) {
+      edit_error = 'Ime igralca ne sme biti prazno.';
+      return;
+    }
+    if (edit_rows.some((r) => isNaN(r.points))) {
+      edit_error = 'Začetne točke morajo biti število.';
+      return;
+    }
+    if (edit_rows.some((r) => isNaN(r.radelci) || r.radelci < 0)) {
+      edit_error = 'Začetni radelci morajo biti nenegativno število.';
+      return;
+    }
+
+    const new_count = edit_rows.length;
+    const new_room = {
+      ...data.room,
+      player_names: names,
+      starting_points: edit_rows.map((r) => r.points),
+      starting_radelci: edit_rows.map((r) => r.radelci),
+    };
+
+    const new_index_of_old = new Array(player_count).fill(-1);
+    edit_rows.forEach((row, new_i) => {
+      if (row.original_index !== null) new_index_of_old[row.original_index] = new_i;
+    });
+
+    data = { ...data, room: new_room };
+    io.emit('tarok:update-room', new_room, new_room.id);
+
+    game_state.rounds = game_state.rounds.map((r) => migrate_round(r, new_index_of_old, new_count));
+    const remapped_mixer = remap_player_index(game_state.mixer, new_index_of_old);
+    game_state.mixer = remapped_mixer === undefined ? 0 : remapped_mixer;
+    game_state.new_round = create_default_new_round_settings(new_count);
+    game_state.new_round.mixer = game_state.mixer;
+    game_state.editing_players = false;
+    game_state.edit_rows = [];
+    draw_updated_state();
+  }
+
   $: game_state !== undefined && update_state();
 </script>
 
@@ -245,95 +400,157 @@
 
   <div class="card inline-block w-full min-w-fit">
     <div class="card-header">
-      <h2 class="h2">Točke</h2>
+      <h2 class="h2">{game_state !== undefined && game_state.editing_players ? 'Uredi igralce' : 'Točke'}</h2>
     </div>
 
     <div class="p-4">
-      <table id="scoreboard" class="divide-y divide-primary-700 w-full">
-        <tr>
-          <th class="m-0" />
-          {#each data.room.player_names as player_name, i}
-            <th class="m-4">
-              <span class="relative inline-blcok">
-                {player_name}
-                {#if game_state !== undefined && i === game_state.mixer}
-                  <div class="badge variant-filled-primary p-1 absolute -top-0 -right-2" />
-                {/if}
-              </span>
-            </th>
-          {/each}
-        </tr>
-        <tr>
-          <td class="text-gray-50/25">#</td>
-          {#each radelc_total as radelc}
-            <td>Rad: {radelc}</td>
-          {/each}
-        </tr>
-        {#if game_state !== undefined}
-          {#if data.room.starting_points !== undefined && data.room.starting_radelci !== undefined && (data.room.starting_points.some((p) => p != 0) || data.room.starting_radelci.some((r) => r != 0))}
-            <tr>
-              <td class="text-gray-50/25">@</td>
-              {#each data.room.starting_points as points, i}
-                <td class="text-gray-50/25"
-                  >{points > 0 ? '+' : ''}{points}
-                  {#if data.room.starting_radelci[i] > 0}
-                    + {data.room.starting_radelci[i]}R
-                  {/if}
-                </td>
-              {/each}
-            </tr>
-          {/if}
-
-          {#each game_state.rounds as round, r}
-            <tr use:popup={{ event: 'click', target: `obrazlozitev-${r}`, placement: 'bottom' }}>
-              <td class="text-gray-50/25">{r + 1}</td>
-              {#each round.points_change as points, i}
-                <td>
-                  {points}
-                  {#if i == round.primary_player && round_type_shorthand(round.round_type) !== ''}
-                    <div class="badge variant-glass-primary">
-                      {round_type_shorthand(round.round_type)}
-                    </div>
-                  {/if}
-                </td>
-              {/each}
-              <div class="card p-4 shadow-xl z-10 bg-surface-200-700-token" data-popup={`obrazlozitev-${r}`}>
-                <Obrazlozitev id={r + 1} {round} player_names={data.room.player_names} />
-                <div class="arrow bg-surface-200-700-token" />
+      {#if game_state !== undefined && game_state.editing_players}
+        <div class="space-y-3">
+          {#each game_state.edit_rows as row, i (row.key)}
+            <div animate:flip={{ duration: 200 }} transition:fade={{ duration: 150 }}>
+              {#if i > 0}
+                <hr class="mb-3" />
+              {/if}
+              <div class="flex gap-2 items-end flex-wrap">
+                <div class="btn-group variant-soft">
+                  <button type="button" disabled={i === 0} on:click={() => move_edit_row(i, -1)}>&uarr;</button>
+                  <button
+                    type="button"
+                    disabled={i === game_state.edit_rows.length - 1}
+                    on:click={() => move_edit_row(i, 1)}>&darr;</button
+                  >
+                </div>
+                <label class="flex-1 min-w-[10rem]">
+                  <span class="label-text text-sm opacity-75">Ime igralca</span>
+                  <input class="input px-2 w-full" type="text" bind:value={row.name} placeholder="Ime igralca" />
+                </label>
+                <label class="w-24">
+                  <span class="label-text text-sm opacity-75">Točke</span>
+                  <input class="input px-2 w-full" type="number" bind:value={row.points} placeholder="Točke" />
+                </label>
+                <label class="w-24">
+                  <span class="label-text text-sm opacity-75">Radelci</span>
+                  <input class="input px-2 w-full" type="number" min="0" bind:value={row.radelci} placeholder="Radelci" />
+                </label>
+                <button
+                  type="button"
+                  class="btn variant-soft"
+                  disabled={game_state.edit_rows.length <= 3}
+                  on:click={() => remove_edit_row(i)}>Odstrani</button
+                >
               </div>
-            </tr>
+            </div>
           {/each}
+        </div>
+
+        {#if edit_error !== undefined}
+          <aside class="alert variant-filled-error mt-4">
+            <div class="alert-message">{edit_error}</div>
+          </aside>
+        {/if}
+
+        <div class="flex justify-center flex-wrap gap-4 mt-4">
+          <button
+            type="button"
+            class="btn variant-soft"
+            disabled={game_state.edit_rows.length >= 5}
+            on:click={add_edit_row}>Dodaj igralca</button
+          >
+        </div>
+
+        <div class="flex justify-center flex-wrap gap-4 mt-8">
+          <button type="button" class="btn variant-soft" on:click={cancel_edit_players}>Prekliči</button>
+          <button type="button" class="btn variant-filled-primary" on:click={save_edit_players}>Shrani</button>
+        </div>
+      {:else}
+        <table id="scoreboard" class="divide-y divide-primary-700 w-full">
           <tr>
-            <td />
-            {#each points_total as points}
-              <td>={points}</td>
+            <th class="m-0" />
+            {#each data.room.player_names as player_name, i}
+              <th class="m-4">
+                <span class="relative inline-blcok">
+                  {player_name}
+                  {#if game_state !== undefined && i === game_state.mixer}
+                    <div class="badge variant-filled-primary p-1 absolute -top-0 -right-2" />
+                  {/if}
+                </span>
+              </th>
             {/each}
           </tr>
-        {:else}
-          <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
-          {#each new Array(4) as _, r}
+          <tr>
+            <td class="text-gray-50/25">#</td>
+            {#each radelc_total as radelc}
+              <td>Rad: {radelc}</td>
+            {/each}
+          </tr>
+          {#if game_state !== undefined}
+            {#if data.room.starting_points !== undefined && data.room.starting_radelci !== undefined && (data.room.starting_points.some((p) => p != 0) || data.room.starting_radelci.some((r) => r != 0))}
+              <tr>
+                <td class="text-gray-50/25">@</td>
+                {#each data.room.starting_points as points, i}
+                  <td class="text-gray-50/25"
+                    >{points > 0 ? '+' : ''}{points}
+                    {#if data.room.starting_radelci[i] > 0}
+                      + {data.room.starting_radelci[i]}R
+                    {/if}
+                  </td>
+                {/each}
+              </tr>
+            {/if}
+
+            {#each game_state.rounds as round, r}
+              <tr use:popup={{ event: 'click', target: `obrazlozitev-${r}`, placement: 'bottom' }}>
+                <td class="text-gray-50/25">{r + 1}</td>
+                {#each round.points_change as points, i}
+                  <td>
+                    {points}
+                    {#if i == round.primary_player && round_type_shorthand(round.round_type) !== ''}
+                      <div class="badge variant-glass-primary">
+                        {round_type_shorthand(round.round_type)}
+                      </div>
+                    {/if}
+                  </td>
+                {/each}
+                <div class="card p-4 shadow-xl z-10 bg-surface-200-700-token" data-popup={`obrazlozitev-${r}`}>
+                  <Obrazlozitev id={r + 1} {round} player_names={data.room.player_names} />
+                  <div class="arrow bg-surface-200-700-token" />
+                </div>
+              </tr>
+            {/each}
             <tr>
-              <td class="text-gray-50/25">{r + 1}</td>
-              <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
-              {#each new Array(4) as _}
-                <td>
-                  <span class="placeholder animate-pulse inline-block w-1/2 p-2 mt-1" />
-                </td>
+              <td />
+              {#each points_total as points}
+                <td>={points}</td>
               {/each}
             </tr>
-          {/each}
-        {/if}
-      </table>
+          {:else}
+            <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
+            {#each new Array(4) as _, r}
+              <tr>
+                <td class="text-gray-50/25">{r + 1}</td>
+                <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
+                {#each new Array(4) as _}
+                  <td>
+                    <span class="placeholder animate-pulse inline-block w-1/2 p-2 mt-1" />
+                  </td>
+                {/each}
+              </tr>
+            {/each}
+          {/if}
+        </table>
 
-      <div class="flex justify-center flex-wrap gap-4 mt-8">
-        <button class="btn variant-soft" on:click={undo_round}>Razveljavi rundo</button>
+        <div class="flex justify-center flex-wrap gap-4 mt-8">
+          <button class="btn variant-soft" on:click={undo_round}>Razveljavi rundo</button>
 
-        <div class="btn-group variant-soft">
-          <button on:click={mixer_left}>&lt;</button>
-          <span class="flex items-center">Mešalec</span>
-          <button on:click={mixer_right}>&gt;</button>
+          <div class="btn-group variant-soft">
+            <button on:click={mixer_left}>&lt;</button>
+            <span class="flex items-center">Mešalec</span>
+            <button on:click={mixer_right}>&gt;</button>
+          </div>
+
+          <button class="btn variant-soft" on:click={start_edit_players}>Uredi igralce</button>
         </div>
-      </div>
+      {/if}
     </div>
   </div>
 
