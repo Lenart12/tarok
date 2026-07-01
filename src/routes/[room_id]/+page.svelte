@@ -383,6 +383,8 @@
     game_state.mixer = remapped_mixer === undefined ? 0 : remapped_mixer;
     game_state.new_round = create_default_new_round_settings(new_count);
     game_state.new_round.mixer = game_state.mixer;
+    game_state.napovedi_open = false;
+    game_state.obrazlozitev_open = false;
     game_state.editing_players = false;
     game_state.edit_rows = [];
     draw_updated_state();
@@ -859,15 +861,17 @@
               <AccordionItem bind:open={game_state.obrazlozitev_open}>
                 <svelte:fragment slot="summary"><h3 class="h3">Pregled točkovanja</h3></svelte:fragment>
                 <svelte:fragment slot="content">
-                  <div class="flex justify-center">
-                    <div class="inline">
-                      <Obrazlozitev
-                        id={game_state.rounds.length + 1}
-                        round={evaluate_round(game_state.new_round, radelc_total)}
-                        player_names={data.room.player_names}
-                      />
+                  {#if round !== undefined}
+                    <div class="flex justify-center">
+                      <div class="inline">
+                        <Obrazlozitev
+                          id={game_state.rounds.length + 1}
+                          round={evaluate_round(game_state.new_round, radelc_total)}
+                          player_names={data.room.player_names}
+                        />
+                      </div>
                     </div>
-                  </div>
+                  {/if}
                 </svelte:fragment>
               </AccordionItem>
             </Accordion>
