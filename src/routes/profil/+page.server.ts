@@ -1,6 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { get_room, get_state } from '$lib/room_controler';
 import { save_account } from '$lib/auth';
+import { aggregate_stats } from '$lib/stats';
+import type { GameRound } from '$lib/tarok';
 
 export const prerender = false;
 
@@ -23,6 +25,14 @@ export function load({ locals }) {
   if (locals.account === undefined) throw redirect(303, '/login?redirect=/profil');
 
   const rooms = [];
+  const stat_entries: {
+    rounds: GameRound[];
+    index: number;
+    player_count: number;
+    room_id: string;
+    title: string;
+    player_names: string[];
+  }[] = [];
   for (const { room_id, player_id } of locals.account.claims) {
     const room = get_room(room_id);
     if (room === undefined) continue;
@@ -30,6 +40,14 @@ export function load({ locals }) {
     if (index === -1) continue;
 
     const state = get_state(room_id);
+    stat_entries.push({
+      rounds: state.rounds,
+      index,
+      player_count: room.player_names.length,
+      room_id,
+      title: room.title,
+      player_names: room.player_names,
+    });
     let points = room.starting_points?.[index] ?? 0;
     let radelci = room.starting_radelci?.[index] ?? 0;
     for (const round of state.rounds) {
@@ -55,5 +73,6 @@ export function load({ locals }) {
     rooms,
     total_points: rooms.reduce((sum, r) => sum + r.points, 0),
     total_rounds: rooms.reduce((sum, r) => sum + r.round_count, 0),
+    stats: aggregate_stats(stat_entries),
   };
 }
