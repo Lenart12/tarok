@@ -3,6 +3,7 @@
   import '@skeletonlabs/skeleton/styles/skeleton.css';
   import '../app.postcss';
   import { afterNavigate } from '$app/navigation';
+  import { page } from '$app/stores';
   import { account } from '$lib/session';
   import { AppShell, AppBar } from '@skeletonlabs/skeleton';
   import { LightSwitch } from '@skeletonlabs/skeleton';
@@ -10,6 +11,10 @@
 
   import { storePopup } from '@skeletonlabs/skeleton';
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow });
+
+  $: login_href = $page.url.pathname.startsWith('/login')
+    ? '/login'
+    : `/login?redirect=${encodeURIComponent($page.url.pathname)}`;
 
   afterNavigate(async () => {
     try {
@@ -34,7 +39,7 @@
         {#if $account}
           <a class="btn btn-sm variant-ghost-surface" href="/profil">{$account.display_name}</a>
         {:else}
-          <a class="btn btn-sm variant-ghost-surface" href="/login">Prijava</a>
+          <a class="btn btn-sm variant-ghost-surface" href={login_href}>Prijava</a>
         {/if}
         <a
           class="btn btn-sm variant-ghost-surface"
