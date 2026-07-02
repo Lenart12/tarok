@@ -9,5 +9,6 @@ node_modules
 .vercel
 .output
 /rooms
+/accounts
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*

@@ -3,8 +3,18 @@ export interface GameRoom {
   title: string;
   created: number;
   player_names: string[];
+  player_ids: string[];
   starting_points: number[];
   starting_radelci: number[];
+}
+
+export function gen_id(len = 16) {
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let s = '';
+  for (const b of bytes) s += chars[b % chars.length];
+  return s;
 }
 
 export enum RoundType {
@@ -133,6 +143,7 @@ export interface NewRoundSettings {
 export interface EditPlayerRow {
   key: number;
   original_index: number | null;
+  player_id: string;
   name: string;
   points: number;
   radelci: number;

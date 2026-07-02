@@ -2,12 +2,22 @@
   import '@skeletonlabs/skeleton/themes/theme-skeleton.css';
   import '@skeletonlabs/skeleton/styles/skeleton.css';
   import '../app.postcss';
+  import { afterNavigate } from '$app/navigation';
+  import { account } from '$lib/session';
   import { AppShell, AppBar } from '@skeletonlabs/skeleton';
   import { LightSwitch } from '@skeletonlabs/skeleton';
   import { computePosition, autoUpdate, offset, shift, flip, arrow } from '@floating-ui/dom';
 
   import { storePopup } from '@skeletonlabs/skeleton';
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow });
+
+  afterNavigate(async () => {
+    try {
+      account.set((await (await fetch('/api/me')).json()).account);
+    } catch {
+      account.set(null);
+    }
+  });
 </script>
 
 <AppShell>
@@ -21,6 +31,11 @@
       </svelte:fragment>
       <svelte:fragment slot="trail">
         <LightSwitch />
+        {#if $account}
+          <a class="btn btn-sm variant-ghost-surface" href="/profil">{$account.display_name}</a>
+        {:else}
+          <a class="btn btn-sm variant-ghost-surface" href="/login">Prijava</a>
+        {/if}
         <a
           class="btn btn-sm variant-ghost-surface"
           href="https://github.com/Lenart12/tarok"

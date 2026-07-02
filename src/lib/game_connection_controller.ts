@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import type * as http from 'node:http';
 import { get_room, get_state, save_room, save_state } from './room_controler';
+import { prune_claims } from './claims';
 
 export default function inject_socketio(server: http.Server) {
   const io = new Server(server, { cors: { origin: '*' } });
@@ -13,8 +14,12 @@ export default function inject_socketio(server: http.Server) {
     });
     socket.on('tarok:update-room', (room, room_id) => {
       save_room(room);
+      prune_claims(room_id, room.player_ids ?? []);
       console.log(socket.id, 'updates room', room_id);
       socket.to(room_id).emit('tarok:new-room', room);
+    });
+    socket.on('tarok:claims-updated', (room_id) => {
+      socket.to(room_id).emit('tarok:claims-updated');
     });
     socket.on('tarok:join-room', (room_id) => {
       console.log(socket.id, 'joined', room_id);

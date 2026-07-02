@@ -1,4 +1,4 @@
-import { create_default_new_round_settings, type GameRoom, type GameState } from './tarok';
+import { create_default_new_round_settings, gen_id, type GameRoom, type GameState } from './tarok';
 import fs from 'fs';
 
 interface DelayedSave {
@@ -33,7 +33,12 @@ export function get_room(room_id: string) {
   try {
     const file_name = `rooms/${room_id}.json`;
     assert_saved(file_name)
-    return JSON.parse(fs.readFileSync(file_name, 'utf-8')) as GameRoom;
+    const room = JSON.parse(fs.readFileSync(file_name, 'utf-8')) as GameRoom;
+    if (room.player_ids === undefined || room.player_ids.length !== room.player_names.length) {
+      room.player_ids = room.player_names.map((_, i) => room.player_ids?.[i] ?? gen_id());
+      save_room(room);
+    }
+    return room;
   } catch (error) {
     return undefined;
   }
@@ -132,6 +137,7 @@ export function create_room(title: string, player_names: string[], starting_poin
   room.title = title;
   room.created = Date.now();
   room.player_names = player_names;
+  room.player_ids = player_names.map(() => gen_id());
   room.starting_points = starting_points;
   room.starting_radelci = starting_radelci;
 

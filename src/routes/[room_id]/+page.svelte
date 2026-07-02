@@ -18,6 +18,7 @@
     klop_slider,
     NapovedValata,
     NapovedBonusa,
+    gen_id,
   } from '$lib/tarok';
   import type { GameState, GameRound, NewRoundRocno, NewRoundKlop, NewRoundOsnovno } from '$lib/tarok';
   import QRCode from 'qrcode';
@@ -32,8 +33,58 @@
   import KontraSelect from './KontraSelect.svelte';
 
   const room_ids = persisted('rooms', [] as string[]);
+  const room_created = persisted('room_created', {} as Record<string, number>);
 
   export let data;
+
+  let me: { id: string; email: string; display_name: string } | null = null;
+  let claims_display: Record<string, { account_id: string; display_name: string }> = {};
+
+  async function load_me() {
+    try {
+      const res = await fetch('/api/me');
+      me = (await res.json()).account;
+    } catch {
+      me = null;
+    }
+  }
+
+  async function load_claims() {
+    try {
+      const res = await fetch(`/game/${data.room.id}/claim`);
+      if (res.ok) claims_display = await res.json();
+    } catch {
+      // ignore
+    }
+  }
+
+  function claim_link(player_id: string) {
+    return `${window.location.origin}/${data.room.id}/claim/${player_id}`;
+  }
+
+  async function claim_seat_action(player_id: string) {
+    const res = await fetch(`/game/${data.room.id}/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ player_id }),
+    });
+    if (res.ok) {
+      claims_display = await res.json();
+      io.emit('tarok:claims-updated', data.room.id);
+    }
+  }
+
+  async function unclaim_seat_action(player_id: string) {
+    const res = await fetch(`/game/${data.room.id}/claim`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ player_id }),
+    });
+    if (res.ok) {
+      claims_display = await res.json();
+      io.emit('tarok:claims-updated', data.room.id);
+    }
+  }
 
   let player_count: number;
   $: player_count = data.room.player_names.length;
@@ -48,6 +99,7 @@
 
   onMount(async () => {
     if ($room_ids.indexOf(data.room.id) === -1) room_ids.set([data.room.id, ...$room_ids]);
+    room_created.update((m) => ({ ...m, [data.room.id]: data.room.created }));
 
     const on_connected = () => {
       console.log('WS connected, joined room', data.room.id);
@@ -70,6 +122,10 @@
     io.on('tarok:new-room', (new_room) => {
       data = { ...data, room: new_room };
     });
+    io.on('tarok:claims-updated', () => load_claims());
+
+    load_me();
+    load_claims();
 
     QRCode.toCanvas(document.getElementById('invite_qr'), window.location.toString());
   });
@@ -252,6 +308,7 @@
     game_state.edit_rows = data.room.player_names.map((name, i) => ({
       key: i,
       original_index: i,
+      player_id: data.room.player_ids[i] ?? gen_id(),
       name,
       points: data.room.starting_points[i] ?? 0,
       radelci: data.room.starting_radelci[i] ?? 0,
@@ -269,7 +326,7 @@
     if (game_state === undefined) return;
     game_state.edit_rows = [
       ...game_state.edit_rows,
-      { key: next_edit_row_key(), original_index: null, name: '', points: 0, radelci: 0 },
+      { key: next_edit_row_key(), original_index: null, player_id: gen_id(), name: '', points: 0, radelci: 0 },
     ];
   }
 
@@ -366,6 +423,7 @@
     const new_room = {
       ...data.room,
       player_names: names,
+      player_ids: edit_rows.map((r) => r.player_id),
       starting_points: edit_rows.map((r) => r.points),
       starting_radelci: edit_rows.map((r) => r.radelci),
     };
@@ -440,6 +498,48 @@
                   disabled={game_state.edit_rows.length <= 3}
                   on:click={() => remove_edit_row(i)}>Odstrani</button
                 >
+                <button
+                  type="button"
+                  class="btn variant-soft"
+                  use:popup={{ event: 'click', target: `prijava-${row.key}`, placement: 'bottom' }}
+                  >{claims_display[row.player_id] ? '✓ Prijava' : 'Prijava'}</button
+                >
+              </div>
+
+              <div class="card p-4 shadow-xl z-10 bg-surface-200-700-token w-64" data-popup={`prijava-${row.key}`}>
+                {#if row.original_index === null}
+                  <p class="text-sm opacity-75">Najprej shranite igralce, da bo mogoče prevzeti to mesto.</p>
+                {:else if claims_display[row.player_id]}
+                  <p class="text-sm">
+                    Povezan z računom: <strong>{claims_display[row.player_id].display_name}</strong>
+                  </p>
+                  {#if me && claims_display[row.player_id].account_id === me.id}
+                    <button
+                      type="button"
+                      class="btn btn-sm variant-soft w-full mt-3"
+                      on:click={() => unclaim_seat_action(row.player_id)}>Prekliči povezavo</button
+                    >
+                  {/if}
+                {:else}
+                  <p class="text-sm opacity-75 mb-2">Skenirajte kodo za prevzem mesta na drugi napravi:</p>
+                  {#await QRCode.toDataURL(claim_link(row.player_id)) then src}
+                    <img class="mx-auto bg-white p-2 rounded" width="180" height="180" {src} alt="Koda za prevzem" />
+                  {/await}
+                  {#if me}
+                    <button
+                      type="button"
+                      class="btn btn-sm variant-filled-primary w-full mt-3"
+                      on:click={() => claim_seat_action(row.player_id)}>To sem jaz</button
+                    >
+                  {:else}
+                    <a
+                      class="btn btn-sm variant-filled-primary w-full mt-3"
+                      href={`/login?redirect=${encodeURIComponent(`/${data.room.id}/claim/${row.player_id}`)}`}
+                      >To sem jaz</a
+                    >
+                  {/if}
+                {/if}
+                <div class="arrow bg-surface-200-700-token" />
               </div>
             </div>
           {/each}
