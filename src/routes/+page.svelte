@@ -35,23 +35,34 @@
   $: page_end = Math.min(page_start + 5, sorted_ids.length);
   $: visible_ids = sorted_ids.slice(page_start, page_end);
   $: load_rooms(visible_ids);
+  // Backfill created time for every listed room (not just the visible page) so the
+  // whole list sorts correctly without having to paginate to each room first.
+  $: backfill_created(all_ids);
+
+  async function fetch_room(room_id: string) {
+    if (room_cache[room_id] || requested.has(room_id)) return;
+    requested.add(room_id);
+    let response = await fetch(`game/${room_id}`);
+    if (!response.ok) {
+      // Stale id (e.g. a deleted room) - drop it from the saved list.
+      if ($room_ids.includes(room_id)) unsave_room(room_id);
+      return;
+    }
+    let game_room = await response.json();
+    room_cache = { ...room_cache, [room_id]: game_room };
+    // Backfill created time for rooms saved before it was tracked.
+    if ($room_created[room_id] === undefined) {
+      room_created.update((m) => ({ ...m, [room_id]: game_room.created }));
+    }
+  }
 
   async function load_rooms(ids: string[]) {
+    for (let room_id of ids) await fetch_room(room_id);
+  }
+
+  async function backfill_created(ids: string[]) {
     for (let room_id of ids) {
-      if (room_cache[room_id] || requested.has(room_id)) continue;
-      requested.add(room_id);
-      let response = await fetch(`game/${room_id}`);
-      if (!response.ok) {
-        // Stale id (e.g. a deleted room) - drop it from the saved list.
-        if ($room_ids.includes(room_id)) unsave_room(room_id);
-        continue;
-      }
-      let game_room = await response.json();
-      room_cache = { ...room_cache, [room_id]: game_room };
-      // Backfill created time for rooms saved before it was tracked.
-      if ($room_created[room_id] === undefined) {
-        room_created.update((m) => ({ ...m, [room_id]: game_room.created }));
-      }
+      if ($room_created[room_id] === undefined) await fetch_room(room_id);
     }
   }
 
