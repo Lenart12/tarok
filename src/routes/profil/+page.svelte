@@ -59,8 +59,8 @@
   <title>Moj profil - Tarok</title>
 </svelte:head>
 
-<div class="container mx-auto p-8 space-y-8">
-  <div class="card px-8 py-4">
+<div class="container mx-auto p-8 px-0 md:px-8 space-y-8">
+  <div class="card px-2 md:px-8 py-4">
     <div class="card-header flex justify-between items-center gap-2">
       {#if editing_name}
         <form
@@ -101,7 +101,7 @@
         <a class="btn btn-sm variant-ghost-surface" href="/logout" data-sveltekit-reload>Odjava</a>
       {/if}
     </div>
-    <div class="p-4 space-y-4">
+    <div class="p-2 md:p-4 space-y-4">
       <p class="opacity-75 text-sm">{data.account.email}</p>
       {#if form?.error}
         <aside class="alert variant-filled-error">
@@ -125,9 +125,9 @@
     </div>
   </div>
 
-  <div class="card px-8 py-4">
+  <div class="card px-2 md:px-8 py-4">
     <div class="card-header"><h2 class="h3">Statistika</h2></div>
-    <div class="p-4">
+    <div class="p-2 md:p-4">
       {#if stats.total_rounds === 0}
         <p class="opacity-75">Ko boste odigrali nekaj iger v povezanih sobah, se bo tu pojavila statistika.</p>
       {:else}
@@ -383,9 +383,9 @@
     </div>
   </div>
 
-  <div class="card px-8 py-4">
+  <div class="card px-2 md:px-8 py-4">
     <div class="card-header"><h2 class="h3">Moje sobe</h2></div>
-    <div class="p-4">
+    <div class="p-2 md:p-4">
       {#if data.rooms.length === 0 && unclaimed.length === 0}
         <p class="opacity-75">Še niste povezani z nobenim mestom. Odprite sobo in v urejanju igralcev kliknite »Prijava«.</p>
       {:else}

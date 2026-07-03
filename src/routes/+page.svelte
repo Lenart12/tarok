@@ -67,12 +67,12 @@
   <title>Tarok</title>
 </svelte:head>
 
-<div class="container mx-auto p-8 space-y-8">
-  <div class="card px-8 py-4">
+<div class="container mx-auto p-8 px-0 md:px-8 space-y-8">
+  <div class="card px-2 md:px-8 py-4">
     <div class="card-header">
       <h1>Moje sobe</h1>
     </div>
-    <div class="p-4">
+    <div class="p-2 md:p-4">
       <hr />
       <ul class="list-dl">
         {#each visible_ids as room_id}
