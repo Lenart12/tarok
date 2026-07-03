@@ -7,6 +7,7 @@
   const room_ids = persisted('rooms', [] as string[]);
   const room_created = persisted('room_created', {} as Record<string, number>);
   let room_cache: Record<string, GameRoom> = {};
+  const requested = new Set<string>();
   let account_room_ids: string[] = [];
 
   onMount(async () => {
@@ -37,7 +38,8 @@
 
   async function load_rooms(ids: string[]) {
     for (let room_id of ids) {
-      if (room_cache[room_id]) continue;
+      if (room_cache[room_id] || requested.has(room_id)) continue;
+      requested.add(room_id);
       let response = await fetch(`game/${room_id}`);
       if (!response.ok) {
         // Stale id (e.g. a deleted room) - drop it from the saved list.
