@@ -29,26 +29,68 @@ function assert_saved(file_name: string) {
   }
 }
 
+// Legacy room files may be missing parallel arrays (player_ids, starting_points,
+// starting_radelci). Backfill any that are absent or the wrong length.
+function normalize_room(room: GameRoom): boolean {
+  let changed = false;
+  if (room.player_ids === undefined || room.player_ids.length !== room.player_names.length) {
+    room.player_ids = room.player_names.map((_, i) => room.player_ids?.[i] ?? gen_id());
+    changed = true;
+  }
+  if (room.starting_points === undefined || room.starting_points.length !== room.player_names.length) {
+    room.starting_points = room.player_names.map((_, i) => room.starting_points?.[i] ?? 0);
+    changed = true;
+  }
+  if (room.starting_radelci === undefined || room.starting_radelci.length !== room.player_names.length) {
+    room.starting_radelci = room.player_names.map((_, i) => room.starting_radelci?.[i] ?? 0);
+    changed = true;
+  }
+  return changed;
+}
+
 export function get_room(room_id: string) {
   try {
     const file_name = `rooms/${room_id}.json`;
     assert_saved(file_name)
     const room = JSON.parse(fs.readFileSync(file_name, 'utf-8')) as GameRoom;
-    if (room.player_ids === undefined || room.player_ids.length !== room.player_names.length) {
-      room.player_ids = room.player_names.map((_, i) => room.player_ids?.[i] ?? gen_id());
-      save_room(room);
-    }
+    if (normalize_room(room)) save_room(room);
     return room;
   } catch (error) {
     return undefined;
   }
 }
 
+// Legacy state files may have an incomplete `new_round` (e.g. missing
+// `osnovno.napoved`), which crashes the room page. Fill in any missing structure.
+function normalize_new_round(state: GameState, player_count: number) {
+  const def = create_default_new_round_settings(player_count);
+  const nr = state.new_round;
+  if (nr === undefined || nr === null || typeof nr !== 'object') {
+    state.new_round = def;
+    return;
+  }
+  nr.osnovno = { ...def.osnovno, ...(nr.osnovno ?? {}) };
+  nr.osnovno.napoved = { ...def.osnovno.napoved, ...(nr.osnovno.napoved ?? {}) };
+  nr.rocno = nr.rocno ?? def.rocno;
+  nr.klop = nr.klop ?? def.klop;
+  nr.opravljanje = nr.opravljanje ?? def.opravljanje;
+  if (nr.kontra === undefined) nr.kontra = def.kontra;
+}
+
 export function get_state(room_id: string) {
   try {
     const file_name = `rooms/${room_id}-state.json`
     assert_saved(file_name)
-    return JSON.parse(fs.readFileSync(file_name, 'utf-8')) as GameState;
+    const state = JSON.parse(fs.readFileSync(file_name, 'utf-8')) as GameState;
+    const player_count =
+      state.starting_points?.length ??
+      state.new_round?.rocno?.points_change?.length ??
+      state.new_round?.klop?.points?.length ??
+      state.rounds?.[0]?.points_change?.length ??
+      get_room(room_id)?.player_names.length ??
+      4;
+    normalize_new_round(state, player_count);
+    return state;
   } catch (error) {
     const room = get_room(room_id);
     if (room === undefined) throw new Error('Creating state for room that does not exist ' + room_id);
