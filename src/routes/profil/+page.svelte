@@ -87,15 +87,14 @@
             required
           />
           <button type="submit" class="btn btn-sm variant-filled-primary">Shrani</button>
-          <button type="button" class="btn btn-sm variant-soft" on:click={() => (editing_name = false)}>Prekliči</button>
+          <button type="button" class="btn btn-sm variant-soft" on:click={() => (editing_name = false)}>Prekliči</button
+          >
         </form>
       {:else}
         <h1 class="h2 flex items-center gap-2">
           {data.account.display_name}
-          <button
-            type="button"
-            class="btn btn-sm variant-ghost-surface"
-            on:click={() => (editing_name = true)}>Uredi</button
+          <button type="button" class="btn btn-sm variant-ghost-surface" on:click={() => (editing_name = true)}
+            >Uredi</button
           >
         </h1>
         <a class="btn btn-sm variant-ghost-surface" href="/logout" data-sveltekit-reload>Odjava</a>
@@ -108,15 +107,16 @@
           <div class="alert-message">{form.error}</div>
         </aside>
       {/if}
-      <div class="flex gap-8 flex-wrap">
+      <div class="flex gap-8 flex-wrap items-center">
         {#if data.rating}
-          <a href="/lestvica" class="block">
+          <div>
             <div class="text-3xl font-bold text-primary-500">
               {data.rating.rating}
               {#if data.rating.provisional}<span class="badge variant-soft align-middle text-xs">začasno</span>{/if}
             </div>
             <div class="opacity-50 text-sm">Ocena (elo) · {data.rating.games} iger</div>
-          </a>
+            <a class="btn btn-sm variant-ghost-surface mt-2" href="/lestvica">Lestvica ocen</a>
+          </div>
         {/if}
         <div>
           <div class="text-3xl font-bold">{data.total_points}</div>
@@ -171,8 +171,8 @@
             <svelte:fragment slot="panel">
               {#if igre_tab === 0}
                 <p class="text-sm opacity-75 mb-2">
-                  Igre, ki ste jih igrali kot aktivna ekipa (igralec ali poklicani partner).
-                  Igrali ste {stats.active_summary.rounds} rund od {stats.total_rounds}
+                  Igre, ki ste jih igrali kot aktivna ekipa (igralec ali poklicani partner). Igrali ste {stats
+                    .active_summary.rounds} rund od {stats.total_rounds}
                   ({pct(stats.active_summary.rounds, stats.total_rounds)}%), zmagali
                   {stats.active_summary.wins} ({pct(stats.active_summary.wins, stats.active_summary.rounds)}%).
                 </p>
@@ -181,7 +181,13 @@
                 {:else}
                   <div class="divide-y divide-surface-500/20">
                     {#each stats.active as s (s.round_type)}
-                      <StatBar name={s.name} count={s.count} wins={s.wins} losses={s.losses} sum_points={s.sum_points} />
+                      <StatBar
+                        name={s.name}
+                        count={s.count}
+                        wins={s.wins}
+                        losses={s.losses}
+                        sum_points={s.sum_points}
+                      />
                     {/each}
                   </div>
                 {/if}
@@ -196,14 +202,22 @@
                 {:else}
                   <div class="divide-y divide-surface-500/20">
                     {#each stats.passive as s (s.round_type)}
-                      <StatBar name={s.name} count={s.count} wins={s.wins} losses={s.losses} sum_points={s.sum_points} />
+                      <StatBar
+                        name={s.name}
+                        count={s.count}
+                        wins={s.wins}
+                        losses={s.losses}
+                        sum_points={s.sum_points}
+                      />
                     {/each}
                   </div>
                 {/if}
               {:else}
                 <p class="text-sm opacity-75 mb-2">
-                  Klicali ste {igral} rund in bili poklicani {stats.klicanje.poklican} rund
-                  ({pct(igral, klicanje_total)}% klicanj).
+                  Klicali ste {igral} rund in bili poklicani {stats.klicanje.poklican} rund ({pct(
+                    igral,
+                    klicanje_total
+                  )}% klicanj).
                 </p>
                 {#if klicanje_total === 0}
                   <p class="opacity-60">Ni podatkov.</p>
@@ -276,8 +290,7 @@
                       style="width:{(Math.abs(t.points) / pbt_max) * 100}%"
                     />
                   </div>
-                  <span
-                    class="w-16 text-right font-semibold {t.points >= 0 ? 'text-primary-500' : 'text-error-500'}"
+                  <span class="w-16 text-right font-semibold {t.points >= 0 ? 'text-primary-500' : 'text-error-500'}"
                     >{t.points > 0 ? '+' : ''}{t.points}</span
                   >
                 </div>
@@ -298,7 +311,13 @@
                 {:else}
                   <div class="divide-y divide-surface-500/20">
                     {#each stats.tihe as s (s.name)}
-                      <StatBar name={s.name} count={s.count} wins={s.wins} losses={s.losses} sum_points={s.sum_points} />
+                      <StatBar
+                        name={s.name}
+                        count={s.count}
+                        wins={s.wins}
+                        losses={s.losses}
+                        sum_points={s.sum_points}
+                      />
                     {/each}
                   </div>
                 {/if}
@@ -309,7 +328,13 @@
                 {:else}
                   <div class="divide-y divide-surface-500/20">
                     {#each stats.izrecene as s (s.name)}
-                      <StatBar name={s.name} count={s.count} wins={s.wins} losses={s.losses} sum_points={s.sum_points} />
+                      <StatBar
+                        name={s.name}
+                        count={s.count}
+                        wins={s.wins}
+                        losses={s.losses}
+                        sum_points={s.sum_points}
+                      />
                     {/each}
                   </div>
                 {/if}
@@ -396,7 +421,9 @@
     <div class="card-header"><h2 class="h3">Moje sobe</h2></div>
     <div class="p-2 md:p-4">
       {#if data.rooms.length === 0 && unclaimed.length === 0}
-        <p class="opacity-75">Še niste povezani z nobenim mestom. Odprite sobo in v urejanju igralcev kliknite »Prijava«.</p>
+        <p class="opacity-75">
+          Še niste povezani z nobenim mestom. Odprite sobo in v urejanju igralcev kliknite »Prijava«.
+        </p>
       {:else}
         <ul class="list-dl">
           {#each visible as room (room.room_id)}
@@ -412,7 +439,9 @@
                 </dt>
                 {#if room.claimed}
                   <dd class="text-sm opacity-75">
-                    {room.player_name}: <strong>{room.points}</strong> točk{room.radelci > 0 ? `, ${room.radelci}R` : ''} · {room.round_count} iger
+                    {room.player_name}: <strong>{room.points}</strong> točk{room.radelci > 0
+                      ? `, ${room.radelci}R`
+                      : ''} · {room.round_count} iger
                   </dd>
                 {:else}
                   <dd class="text-sm opacity-50">
