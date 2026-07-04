@@ -12,12 +12,12 @@
 
 <div class="container mx-auto p-8 px-0 md:px-8 space-y-8">
   <div class="card px-2 md:px-8 py-4">
-    <div class="card-header"><h1 class="h2">Lestvica</h1></div>
+    <div class="card-header flex items-center justify-between gap-2">
+      <h1 class="h2">ELO Lestvica</h1>
+      <a class="btn btn-sm variant-ghost-surface" href="/lestvica/informacije">Kako deluje?</a>
+    </div>
     <div class="p-2 md:p-4 space-y-2">
-      <p class="text-sm opacity-75">
-        Ocena moči igralcev (elo) povezanih računov. Vsaka odigrana igra premakne oceno glede na pričakovan izid —
-        presenetljive in težje zmage štejejo več.
-      </p>
+      <p class="text-sm opacity-75">Prikazane so le ocene igralcev, s katerimi ste že kdaj igrali.</p>
 
       {#if data.established.length === 0 && data.provisional.length === 0}
         <p class="opacity-60">Še ni ocen. Povežite račun s sobo in odigrajte nekaj iger.</p>

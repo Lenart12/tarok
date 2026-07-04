@@ -4,6 +4,7 @@ import {
   NewRoundType,
   round_type_game,
   round_base_value,
+  round_type_name,
   game_is_solo,
   type GameRound,
   type NewRoundOsnovno,
@@ -155,11 +156,21 @@ export function recompute_ratings(): Ratings {
       made.set(round.round_type, t);
     }
   }
-  const offset_for = (rt: RoundType): number => {
-    const t = made.get(rt);
-    const p0 = t ? (t.made + 0.5 * MADE_PSEUDO) / (t.total + MADE_PSEUDO) : 0.5;
-    return made_rate_offset(clamp(p0, P0_MIN, P0_MAX));
-  };
+  const smoothed_prior = (t: { made: number; total: number } | undefined): number =>
+    clamp(t ? (t.made + 0.5 * MADE_PSEUDO) / (t.total + MADE_PSEUDO) : 0.5, P0_MIN, P0_MAX);
+  const offset_for = (rt: RoundType): number => made_rate_offset(smoothed_prior(made.get(rt)));
+
+  // Snapshot the difficulty priors for the info page.
+  prior_cache = [...made.entries()]
+    .map(([rt, t]) => ({
+      round_type: rt,
+      name: round_type_name(rt),
+      base_value: round_base_value(rt),
+      sample: t.total,
+      made_rate: t.total > 0 ? t.made / t.total : 0,
+      prior: smoothed_prior(t),
+    }))
+    .sort((a, b) => b.prior - a.prior);
 
   // Flatten to rated hands and replay in an approximate chronological order.
   interface Hand {
@@ -294,6 +305,38 @@ function apply_radelci(
 // ---------------------------------------------------------------------------
 let cache: Ratings | null = null;
 let recompute_timer: NodeJS.Timeout | undefined;
+
+export interface PriorInfo {
+  round_type: RoundType;
+  name: string;
+  base_value: number;
+  sample: number;
+  made_rate: number; // raw made / total
+  prior: number; // smoothed & clamped probability used in the expected score
+}
+
+let prior_cache: PriorInfo[] | null = null;
+
+// Key rating parameters, exposed for the info page (single source of truth).
+export const RATING_INFO = {
+  initial: INITIAL,
+  scale: SCALE,
+  k_new: K_NEW,
+  k_established: K_ESTABLISHED,
+  provisional_games: PROVISIONAL_GAMES,
+  renons_penalty: RENONS_PENALTY,
+  radelc_per_deviation: RADELC_C,
+  radelc_cap: RADELC_CAP,
+  min_room_rounds: MIN_ROOM_ROUNDS,
+  margin_max: W_MAX,
+};
+
+// The latest empirical difficulty priors (per game type). Recomputing the
+// ratings also refreshes this snapshot.
+export function get_priors(): PriorInfo[] {
+  if (prior_cache === null) get_ratings();
+  return prior_cache ?? [];
+}
 
 export function save_ratings(ratings: Ratings) {
   fs.writeFileSync(RATINGS_FILE, JSON.stringify(ratings));
