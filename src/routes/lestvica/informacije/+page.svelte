@@ -89,15 +89,6 @@
       {/if}
 
       <div>
-        <h2 class="h4 mb-1">Velikost zmage</h2>
-        <p class="opacity-80">
-          Prepričljiva zmaga (velika razlika glede na vrednost igre) premakne oceno nekoliko bolj — do
-          {params.margin_max}× običajnega premika. Igre na razliko (berač, pikolo, valat …) so »narejeno ali ne«, zato
-          pri njih velikost ne šteje.
-        </p>
-      </div>
-
-      <div>
         <h2 class="h4 mb-1">Posebne igre</h2>
         <ul class="list-disc list-inside space-y-1 opacity-80">
           <li>

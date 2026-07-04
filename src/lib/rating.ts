@@ -21,7 +21,7 @@ const INITIAL = 1500; // starting rating for every account
 const BASELINE = 1500; // assumed strength of anonymous (unclaimed) seats
 const SCALE = 400; // Elo logistic scale
 const K_NEW = 40; // K while provisional
-const K_ESTABLISHED = 20; // K once settled
+const K_ESTABLISHED = 12; // K once settled (lowered from 20 — calibration showed lower K predicts better)
 export const PROVISIONAL_GAMES = 30; // rated hands before a rating is "established"
 const RENONS_PENALTY = 15; // flat rating deduction for a renons offender
 const RADELC_C = 5; // rating per leftover-radelc deviation from room average
@@ -30,7 +30,7 @@ const MIN_ROOM_ROUNDS = 5; // minimum rated rounds before radelci efficiency cou
 const MADE_PSEUDO = 10; // Bayesian pseudo-count for made-rate smoothing
 const P0_MIN = 0.05;
 const P0_MAX = 0.95;
-const MARGIN_GAIN = 0.5; // how strongly margin scales the stake
+const MARGIN_GAIN = 0; // margin weighting disabled — calibration showed it added noise, not signal
 const W_MIN = 0.7;
 const W_MAX = 1.8;
 
@@ -77,7 +77,7 @@ function margin_weight(round: GameRound): number {
 
 // Declaring team = declarer (+ called partner, when there is one); everyone else
 // defends. Mirrors the team logic in stats.ts (aggregate_stats).
-function round_teams(round: GameRound): { active: number[]; passive: number[]; player_count: number } | null {
+export function round_teams(round: GameRound): { active: number[]; passive: number[]; player_count: number } | null {
   const kind = round_type_game(round.round_type);
   if (kind !== NewRoundType.Osnovno && kind !== NewRoundType.Opravljanje) return null;
   const player_count = round.points_change?.length ?? 0;
@@ -328,7 +328,6 @@ export const RATING_INFO = {
   radelc_per_deviation: RADELC_C,
   radelc_cap: RADELC_CAP,
   min_room_rounds: MIN_ROOM_ROUNDS,
-  margin_max: W_MAX,
 };
 
 // The latest empirical difficulty priors (per game type). Recomputing the
