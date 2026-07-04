@@ -11,10 +11,10 @@ import {
 import { game_made } from './stats';
 import { get_room, get_state, list_room_ids } from './room_controler';
 import { get_claims } from './claims';
-import { get_account } from './auth';
+import { get_account, type Account } from './auth';
 
 // ---------------------------------------------------------------------------
-// Elo constants (all tunable in one place — see plan §2.10).
+// Elo constants (all tunable in one place).
 // ---------------------------------------------------------------------------
 const INITIAL = 1500; // starting rating for every account
 const BASELINE = 1500; // assumed strength of anonymous (unclaimed) seats
@@ -108,8 +108,8 @@ interface RoomData {
 }
 
 // ---------------------------------------------------------------------------
-// Full deterministic recompute (see plan §2.8). Rebuilds every rating from the
-// persisted room files, so retroactive edits never cause drift.
+// Full deterministic recompute. Rebuilds every rating from the persisted room
+// files, so retroactive edits never cause drift.
 // ---------------------------------------------------------------------------
 export function recompute_ratings(): Ratings {
   const ratings: Ratings = {};
@@ -320,11 +320,24 @@ export interface LeaderboardRow {
   provisional: boolean;
 }
 
-export function leaderboard(): { established: LeaderboardRow[]; provisional: LeaderboardRow[] } {
+// The set of accounts a viewer has shared a room with (has a claimed seat in the
+// same room), including themselves. Used to scope the leaderboard.
+export function played_with(account: Account): Set<string> {
+  const seen = new Set<string>([account.id]);
+  const room_ids = new Set(account.claims.map((c) => c.room_id));
+  for (const room_id of room_ids) {
+    for (const acc of Object.values(get_claims(room_id))) seen.add(acc);
+  }
+  return seen;
+}
+
+// When `only` is given, restrict the leaderboard to those account ids.
+export function leaderboard(only?: Set<string>): { established: LeaderboardRow[]; provisional: LeaderboardRow[] } {
   const ratings = get_ratings();
   const rows: LeaderboardRow[] = [];
   for (const [account_id, rec] of Object.entries(ratings)) {
     if (rec.games === 0) continue;
+    if (only !== undefined && !only.has(account_id)) continue;
     const account = get_account(account_id);
     if (account === undefined) continue;
     rows.push({

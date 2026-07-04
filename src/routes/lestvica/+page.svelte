@@ -15,9 +15,8 @@
     <div class="card-header"><h1 class="h2">Lestvica</h1></div>
     <div class="p-2 md:p-4 space-y-2">
       <p class="text-sm opacity-75">
-        Ocena moči igralcev (elo) povezanih računov. Vsaka odigrana igra premakne oceno glede na
-        pričakovan izid — presenetljive in težje zmage štejejo več. Igralci z manj kot 30 igrami so
-        še začasni.
+        Ocena moči igralcev (elo) povezanih računov. Vsaka odigrana igra premakne oceno glede na pričakovan izid —
+        presenetljive in težje zmage štejejo več.
       </p>
 
       {#if data.established.length === 0 && data.provisional.length === 0}
@@ -54,7 +53,7 @@
             <tbody>
               {#each data.provisional as row (row.account_id)}
                 <tr class={row.account_id === me ? '!bg-primary-500/20' : ''}>
-                  <td class="w-10"></td>
+                  <td class="w-10" />
                   <td class="font-semibold">
                     {row.display_name}
                     <span class="badge variant-soft ml-1">začasno</span>
