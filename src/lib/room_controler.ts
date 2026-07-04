@@ -48,6 +48,20 @@ function normalize_room(room: GameRoom): boolean {
   return changed;
 }
 
+// Enumerate every room by reading the rooms/ directory, skipping the -state and
+// -claims sibling files. Used by the rating recompute, which needs all rooms
+// (not just one account's claims).
+export function list_room_ids(): string[] {
+  try {
+    return fs
+      .readdirSync('rooms')
+      .filter((f) => f.endsWith('.json') && !f.endsWith('-state.json') && !f.endsWith('-claims.json'))
+      .map((f) => f.slice(0, -'.json'.length));
+  } catch {
+    return [];
+  }
+}
+
 export function get_room(room_id: string) {
   try {
     const file_name = `rooms/${room_id}.json`;

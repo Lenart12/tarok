@@ -108,7 +108,16 @@
           <div class="alert-message">{form.error}</div>
         </aside>
       {/if}
-      <div class="flex gap-8">
+      <div class="flex gap-8 flex-wrap">
+        {#if data.rating}
+          <a href="/lestvica" class="block">
+            <div class="text-3xl font-bold text-primary-500">
+              {data.rating.rating}
+              {#if data.rating.provisional}<span class="badge variant-soft align-middle text-xs">začasno</span>{/if}
+            </div>
+            <div class="opacity-50 text-sm">Ocena (elo) · {data.rating.games} iger</div>
+          </a>
+        {/if}
         <div>
           <div class="text-3xl font-bold">{data.total_points}</div>
           <div class="opacity-50 text-sm">Skupaj točk</div>

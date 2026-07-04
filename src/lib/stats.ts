@@ -74,7 +74,7 @@ const HIST_BUCKET = 20;
 
 // Legacy rooms may store rounds with a missing or malformed `round` payload, so
 // every access is guarded and falls back to the sign of the declarer's points.
-function game_made(round: GameRound): boolean {
+export function game_made(round: GameRound): boolean {
   const kind = round_type_game(round.round_type);
   const r = round.round as Partial<NewRoundOpravljanje & NewRoundOsnovno> | undefined;
   if (kind === NewRoundType.Opravljanje && r !== undefined && typeof r.opravljeno === 'boolean') {

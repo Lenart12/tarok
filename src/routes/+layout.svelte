@@ -35,6 +35,7 @@
         </a>
       </svelte:fragment>
       <svelte:fragment slot="trail">
+        <a class="btn btn-sm variant-ghost-surface" href="/lestvica">Lestvica</a>
         <LightSwitch />
         {#if $account}
           <a class="btn btn-sm variant-ghost-surface" href="/profil">{$account.display_name}</a>
