@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { get_room, get_state } from '$lib/room_controler';
 import { save_account } from '$lib/auth';
 import { aggregate_stats } from '$lib/stats';
-import { rating_for } from '$lib/rating';
+import { rating_for, room_rating_for } from '$lib/rating';
 import type { GameRound } from '$lib/tarok';
 
 export const prerender = false;
@@ -76,5 +76,6 @@ export function load({ locals }) {
     total_rounds: rooms.reduce((sum, r) => sum + r.round_count, 0),
     stats: aggregate_stats(stat_entries),
     rating: rating_for(locals.account.id),
+    room_rating: room_rating_for(locals.account.id),
   };
 }

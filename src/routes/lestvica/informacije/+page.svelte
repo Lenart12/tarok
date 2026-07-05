@@ -106,6 +106,22 @@
       </div>
 
       <div>
+        <h2 class="h4 mb-1">Lestvica po sobah</h2>
+        <p class="opacity-80">
+          Poleg ocene po posameznih igrah obstaja še <strong>ločena ocena po sobah</strong>, ki meri, kdo dobiva cele
+          seje. Vsaka končana soba (vsaj {params.room_min_rounds} iger) je en dvoboj vseh proti vsem. Vsak igralec dobi
+          <strong>končni izkupiček</strong>, od katerega se odšteje <strong>{params.room_radelc_penalty} točk za vsak
+          neizkoriščen radelc</strong> (radelci, ki jih nisi vnovčil, štejejo proti tebi):
+        </p>
+        <pre class="pre my-2 text-xs overflow-x-auto">rezultat = končne točke − {params.room_radelc_penalty} × neizkoriščeni radelci</pre>
+        <p class="opacity-80">
+          Igralci se razvrstijo po tem rezultatu; vsak par je mini dvoboj, pri čemer <strong>večja razlika v rezultatu</strong>
+          premakne oceno bolj kot tesna zmaga. Novi igralci imajo večji K ({params.room_k_new}), ustaljeni manjšega ({params.room_k_established});
+          ocena postane trajna po {params.room_provisional_games} sobah. Ta lestvica je povsem neodvisna od ocene po igrah.
+        </p>
+      </div>
+
+      <div>
         <h2 class="h4 mb-1">Zasebnost lestvice</h2>
         <p class="opacity-80">
           Ocene se računajo na strežniku iz shranjenih iger. Na lestvici vidite le igralce, s katerimi ste že kdaj

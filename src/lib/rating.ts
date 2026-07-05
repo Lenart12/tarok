@@ -34,7 +34,16 @@ const MARGIN_GAIN = 0; // margin weighting disabled — calibration showed it ad
 const W_MIN = 0.7;
 const W_MAX = 1.8;
 
+// Room-level ladder: one pairwise Elo event per completed room, ranking players
+// by their adjusted final score (points minus a penalty per leftover radelc).
+const ROOM_RADELC_POINT_PENALTY = 100; // score points deducted per leftover radelc
+const ROOM_K_NEW = 40; // K while a room rating is provisional
+const ROOM_K_ESTABLISHED = 20; // K once settled
+export const ROOM_PROVISIONAL_GAMES = 10; // rated rooms before a room rating is "established"
+const ROOM_MARGIN_GAIN = 1.0; // how strongly the room-relative score gap scales the stake
+
 const RATINGS_FILE = 'ratings.json';
+const ROOM_RATINGS_FILE = 'room_ratings.json';
 
 export interface RatingRecord {
   rating: number;
@@ -103,6 +112,7 @@ export function round_teams(round: GameRound): { active: number[]; passive: numb
 interface RoomData {
   created: number;
   player_count: number;
+  starting_points: number[];
   starting_radelci: number[];
   rounds: GameRound[];
   seat_account: (string | undefined)[]; // seat index -> claimed account id (or undefined)
@@ -138,6 +148,7 @@ export function recompute_ratings(): Ratings {
     rooms.push({
       created: room.created ?? 0,
       player_count: room.player_names.length,
+      starting_points: room.starting_points ?? [],
       starting_radelci: room.starting_radelci ?? [],
       rounds: state.rounds ?? [],
       seat_account: room.player_ids.map((pid) => claims[pid]),
@@ -207,7 +218,85 @@ export function recompute_ratings(): Ratings {
   for (const room of rooms) apply_radelci(room, bump);
 
   save_ratings(ratings);
+
+  // Second, independent ladder: one pairwise Elo event per completed room.
+  room_cache = recompute_room_ratings(rooms);
+  save_room_ratings(room_cache);
+
   return ratings;
+}
+
+// The whole-session ladder. Each room past the round gate is a single free-for-all
+// Elo match, ranking players by their adjusted final score (§ apply_room_match).
+function recompute_room_ratings(rooms: RoomData[]): Ratings {
+  const ratings: Ratings = {};
+  const ensure = (id: string): RatingRecord =>
+    (ratings[id] ??= { rating: INITIAL, games: 0, peak: INITIAL, updated: Date.now() });
+  const rating_of = (room: RoomData, seat: number): number => {
+    const account = room.seat_account[seat];
+    return account ? ensure(account).rating : BASELINE;
+  };
+  const bump = (id: string, delta: number) => {
+    const rec = ensure(id);
+    rec.rating += delta;
+    rec.games += 1;
+    rec.peak = Math.max(rec.peak, rec.rating);
+  };
+  const k_room = (id: string): number =>
+    ensure(id).games < ROOM_PROVISIONAL_GAMES ? ROOM_K_NEW : ROOM_K_ESTABLISHED;
+
+  for (const room of [...rooms].sort((a, b) => a.created - b.created)) {
+    apply_room_match(room, rating_of, k_room, bump);
+  }
+  return ratings;
+}
+
+// A player's whole-room performance: final points, penalized per leftover radelc.
+function room_score(room: RoomData, seat: number): number {
+  let points = room.starting_points?.[seat] ?? 0;
+  let radelci = room.starting_radelci?.[seat] ?? 0;
+  for (const round of room.rounds) {
+    points += round.points_change?.[seat] ?? 0;
+    radelci += round.radelc_change?.[seat] ?? 0;
+  }
+  return points - ROOM_RADELC_POINT_PENALTY * radelci;
+}
+
+function apply_room_match(
+  room: RoomData,
+  rating_of: (room: RoomData, seat: number) => number,
+  k_room: (id: string) => number,
+  bump: (id: string, delta: number) => void,
+) {
+  const n = room.player_count;
+  if (n < 2) return;
+  const rated_rounds = room.rounds.filter(
+    (r) => r.round_type !== RoundType.Rocno && r.round_type !== RoundType.Renons,
+  ).length;
+  if (rated_rounds < MIN_ROOM_ROUNDS) return;
+
+  const scores: number[] = [];
+  for (let i = 0; i < n; i++) scores.push(room_score(room, i));
+  const spread = Math.max(...scores) - Math.min(...scores);
+
+  // Free-for-all: every ordered pair is a margin-scaled mini-match, K spread
+  // across the (n-1) opponents so one room isn't worth n normal events.
+  const deltas: { account: string; delta: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const account = room.seat_account[i];
+    if (account === undefined) continue;
+    let delta = 0;
+    for (let j = 0; j < n; j++) {
+      if (j === i) continue;
+      const s_ij = scores[i] > scores[j] ? 1 : scores[i] < scores[j] ? 0 : 0.5;
+      const norm = spread > 0 ? Math.abs(scores[i] - scores[j]) / spread : 0;
+      const w = clamp(1 + ROOM_MARGIN_GAIN * Math.log1p(norm), W_MIN, W_MAX);
+      delta += (w * (s_ij - expected(rating_of(room, i), rating_of(room, j)))) / (n - 1);
+    }
+    deltas.push({ account, delta: k_room(account) * delta });
+  }
+  // Apply after computing all deltas so pairs use pre-update ratings.
+  for (const { account, delta } of deltas) bump(account, delta);
 }
 
 function apply_declarer(
@@ -304,6 +393,7 @@ function apply_radelci(
 // never trusting the socket channel) and after a debounced round commit.
 // ---------------------------------------------------------------------------
 let cache: Ratings | null = null;
+let room_cache: Ratings | null = null;
 let recompute_timer: NodeJS.Timeout | undefined;
 
 export interface PriorInfo {
@@ -328,6 +418,11 @@ export const RATING_INFO = {
   radelc_per_deviation: RADELC_C,
   radelc_cap: RADELC_CAP,
   min_room_rounds: MIN_ROOM_ROUNDS,
+  room_radelc_penalty: ROOM_RADELC_POINT_PENALTY,
+  room_k_new: ROOM_K_NEW,
+  room_k_established: ROOM_K_ESTABLISHED,
+  room_provisional_games: ROOM_PROVISIONAL_GAMES,
+  room_min_rounds: MIN_ROOM_ROUNDS,
 };
 
 // The latest empirical difficulty priors (per game type). Recomputing the
@@ -341,9 +436,19 @@ export function save_ratings(ratings: Ratings) {
   fs.writeFileSync(RATINGS_FILE, JSON.stringify(ratings));
 }
 
+export function save_room_ratings(ratings: Ratings) {
+  fs.writeFileSync(ROOM_RATINGS_FILE, JSON.stringify(ratings));
+}
+
 export function get_ratings(): Ratings {
   if (cache === null) cache = recompute_ratings();
   return cache;
+}
+
+// One recompute fills both ladders' caches (see recompute_ratings).
+export function get_room_ratings(): Ratings {
+  if (room_cache === null) cache = recompute_ratings();
+  return room_cache ?? {};
 }
 
 export function schedule_recompute() {
@@ -373,9 +478,11 @@ export function played_with(account: Account): Set<string> {
   return seen;
 }
 
-// When `only` is given, restrict the leaderboard to those account ids.
-export function leaderboard(only?: Set<string>): { established: LeaderboardRow[]; provisional: LeaderboardRow[] } {
-  const ratings = get_ratings();
+function build_leaderboard(
+  ratings: Ratings,
+  provisional_games: number,
+  only?: Set<string>,
+): { established: LeaderboardRow[]; provisional: LeaderboardRow[] } {
   const rows: LeaderboardRow[] = [];
   for (const [account_id, rec] of Object.entries(ratings)) {
     if (rec.games === 0) continue;
@@ -388,7 +495,7 @@ export function leaderboard(only?: Set<string>): { established: LeaderboardRow[]
       rating: Math.round(rec.rating),
       games: rec.games,
       peak: Math.round(rec.peak),
-      provisional: rec.games < PROVISIONAL_GAMES,
+      provisional: rec.games < provisional_games,
     });
   }
   rows.sort((a, b) => b.rating - a.rating);
@@ -398,8 +505,12 @@ export function leaderboard(only?: Set<string>): { established: LeaderboardRow[]
   };
 }
 
-export function rating_for(account_id: string): LeaderboardRow | null {
-  const rec = get_ratings()[account_id];
+function build_rating_for(
+  ratings: Ratings,
+  account_id: string,
+  provisional_games: number,
+): LeaderboardRow | null {
+  const rec = ratings[account_id];
   if (rec === undefined) return null;
   const account = get_account(account_id);
   return {
@@ -408,6 +519,23 @@ export function rating_for(account_id: string): LeaderboardRow | null {
     rating: Math.round(rec.rating),
     games: rec.games,
     peak: Math.round(rec.peak),
-    provisional: rec.games < PROVISIONAL_GAMES,
+    provisional: rec.games < provisional_games,
   };
+}
+
+// When `only` is given, restrict the leaderboard to those account ids.
+export function leaderboard(only?: Set<string>) {
+  return build_leaderboard(get_ratings(), PROVISIONAL_GAMES, only);
+}
+
+export function room_leaderboard(only?: Set<string>) {
+  return build_leaderboard(get_room_ratings(), ROOM_PROVISIONAL_GAMES, only);
+}
+
+export function rating_for(account_id: string): LeaderboardRow | null {
+  return build_rating_for(get_ratings(), account_id, PROVISIONAL_GAMES);
+}
+
+export function room_rating_for(account_id: string): LeaderboardRow | null {
+  return build_rating_for(get_room_ratings(), account_id, ROOM_PROVISIONAL_GAMES);
 }

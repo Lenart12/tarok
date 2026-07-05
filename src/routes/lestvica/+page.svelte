@@ -3,7 +3,11 @@
 
   export let data;
 
+  let tab: 'hand' | 'room' = 'hand';
+
   $: me = $account?.id;
+  $: current = tab === 'hand' ? data.hand : data.room;
+  $: provisional_label = tab === 'hand' ? 'manj kot 30 iger' : 'manj kot 10 sob';
 </script>
 
 <svelte:head>
@@ -17,12 +21,27 @@
       <a class="btn btn-sm variant-ghost-surface" href="/lestvica/informacije">Kako deluje?</a>
     </div>
     <div class="p-2 md:p-4 space-y-2">
+      <div class="flex gap-2">
+        <button
+          class="btn btn-sm {tab === 'hand' ? 'variant-filled-primary' : 'variant-ghost-surface'}"
+          on:click={() => (tab = 'hand')}
+        >
+          Po igrah
+        </button>
+        <button
+          class="btn btn-sm {tab === 'room' ? 'variant-filled-primary' : 'variant-ghost-surface'}"
+          on:click={() => (tab = 'room')}
+        >
+          Po sobah
+        </button>
+      </div>
+
       <p class="text-sm opacity-75">Prikazane so le ocene igralcev, s katerimi ste že kdaj igrali.</p>
 
-      {#if data.established.length === 0 && data.provisional.length === 0}
+      {#if current.established.length === 0 && current.provisional.length === 0}
         <p class="opacity-60">Še ni ocen. Povežite račun s sobo in odigrajte nekaj iger.</p>
       {:else}
-        {#if data.established.length > 0}
+        {#if current.established.length > 0}
           <table class="table table-compact">
             <thead>
               <tr>
@@ -30,11 +49,11 @@
                 <th>Igralec</th>
                 <th class="!text-right">Ocena</th>
                 <th class="!text-right">Najvišja</th>
-                <th class="!text-right">Iger</th>
+                <th class="!text-right">{tab === 'hand' ? 'Iger' : 'Sob'}</th>
               </tr>
             </thead>
             <tbody>
-              {#each data.established as row, i (row.account_id)}
+              {#each current.established as row, i (row.account_id)}
                 <tr class={row.account_id === me ? '!bg-primary-500/20' : ''}>
                   <td class="!text-right opacity-60">{i + 1}</td>
                   <td class="font-semibold">{row.display_name}</td>
@@ -47,11 +66,11 @@
           </table>
         {/if}
 
-        {#if data.provisional.length > 0}
-          <p class="text-sm opacity-60 pt-4">Začasne ocene (manj kot 30 iger)</p>
+        {#if current.provisional.length > 0}
+          <p class="text-sm opacity-60 pt-4">Začasne ocene ({provisional_label})</p>
           <table class="table table-compact">
             <tbody>
-              {#each data.provisional as row (row.account_id)}
+              {#each current.provisional as row (row.account_id)}
                 <tr class={row.account_id === me ? '!bg-primary-500/20' : ''}>
                   <td class="w-10" />
                   <td class="font-semibold">

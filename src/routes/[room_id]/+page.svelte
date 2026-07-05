@@ -363,7 +363,12 @@
     const migrated = { ...round };
     migrated.points_change = remap_indexed_array(round.points_change, new_index_of_old, new_count, 0);
     migrated.radelc_change = remap_indexed_array(round.radelc_change, new_index_of_old, new_count, 0);
-    migrated.koriscen_radelc = remap_indexed_array(round.koriscen_radelc, new_index_of_old, new_count, RadelcUsage.None);
+    migrated.koriscen_radelc = remap_indexed_array(
+      round.koriscen_radelc,
+      new_index_of_old,
+      new_count,
+      RadelcUsage.None
+    );
     migrated.primary_player = remap_player_index(round.primary_player, new_index_of_old) ?? -1;
 
     switch (round_type_game(round.round_type)) {
@@ -490,7 +495,13 @@
                 </label>
                 <label class="w-24">
                   <span class="label-text text-sm opacity-75">Radelci</span>
-                  <input class="input px-2 w-full" type="number" min="0" bind:value={row.radelci} placeholder="Radelci" />
+                  <input
+                    class="input px-2 w-full"
+                    type="number"
+                    min="0"
+                    bind:value={row.radelci}
+                    placeholder="Radelci"
+                  />
                 </label>
                 <button
                   type="button"
@@ -625,6 +636,14 @@
                 <td>={points}</td>
               {/each}
             </tr>
+            {#if radelc_total.some((r) => r != 0)}
+              <tr class="!border-surface-500/40">
+                <td />
+                {#each points_total as points, i}
+                  <td class="opacity-40">={points - 100 * radelc_total[i]}</td>
+                {/each}
+              </tr>
+            {/if}
           {:else}
             <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
             {#each new Array(4) as _, r}
@@ -950,7 +969,12 @@
           </SlideToggle>
         </div>
 
-        <div class="p-4" hidden={!show_if_round(round, NewRoundType.Klop) || !show_if_round(round, NewRoundType.Rocno) || round === undefined}>
+        <div
+          class="p-4"
+          hidden={!show_if_round(round, NewRoundType.Klop) ||
+            !show_if_round(round, NewRoundType.Rocno) ||
+            round === undefined}
+        >
           <h3 class="h3">Kontra</h3>
           <KontraSelect id="kontra" bind:value={game_state.new_round.kontra} />
         </div>

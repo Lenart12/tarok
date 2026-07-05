@@ -97,7 +97,10 @@
             >Uredi</button
           >
         </h1>
-        <a class="btn btn-sm variant-ghost-surface" href="/logout" data-sveltekit-reload>Odjava</a>
+        <div class="flex gap-2">
+          <a class="btn btn-sm variant-ghost-surface" href="/lestvica">Lestvica</a>
+          <a class="btn btn-sm variant-ghost-surface" href="/logout" data-sveltekit-reload>Odjava</a>
+        </div>
       {/if}
     </div>
     <div class="p-2 md:p-4 space-y-4">
@@ -114,8 +117,17 @@
               {data.rating.rating}
               {#if data.rating.provisional}<span class="badge variant-soft align-middle text-xs">začasno</span>{/if}
             </div>
-            <div class="opacity-50 text-sm">Ocena (elo) · {data.rating.games} iger</div>
-            <a class="btn btn-sm variant-ghost-surface mt-2" href="/lestvica">Lestvica ocen</a>
+            <div class="opacity-50 text-sm">Ocena po igrah · {data.rating.games} iger</div>
+          </div>
+        {/if}
+        {#if data.room_rating}
+          <div>
+            <div class="text-3xl font-bold text-primary-500">
+              {data.room_rating.rating}
+              {#if data.room_rating.provisional}<span class="badge variant-soft align-middle text-xs">začasno</span
+                >{/if}
+            </div>
+            <div class="opacity-50 text-sm">Ocena po sobah · {data.room_rating.games} sob</div>
           </div>
         {/if}
         <div>

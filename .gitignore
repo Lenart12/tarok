@@ -11,6 +11,7 @@ node_modules
 /rooms
 /accounts
 /ratings.json
+/room_ratings.json
 /.calibrate.mjs
 /.calibration.json
 vite.config.js.timestamp-*
