@@ -14,6 +14,7 @@
 
   let igre_tab = 0;
   let napovedi_tab = 0;
+  let rekordi_tab = 0;
 
   const pct = (part: number, whole: number) => (whole > 0 ? ((part / whole) * 100).toFixed(1) : '0.0');
   $: stats = data.stats;
@@ -27,6 +28,16 @@
   $: elo_rooms = data.rooms.filter((r): r is typeof r & { elo_delta: number } => r.elo_delta !== null);
   $: best_elo = elo_rooms.length ? elo_rooms.reduce((a, b) => (b.elo_delta > a.elo_delta ? b : a)) : null;
   $: worst_elo = elo_rooms.length ? elo_rooms.reduce((a, b) => (b.elo_delta < a.elo_delta ? b : a)) : null;
+
+  $: room_elo_rooms = data.rooms.filter(
+    (r): r is typeof r & { room_elo_delta: number } => r.room_elo_delta !== null,
+  );
+  $: best_room_elo = room_elo_rooms.length
+    ? room_elo_rooms.reduce((a, b) => (b.room_elo_delta > a.room_elo_delta ? b : a))
+    : null;
+  $: worst_room_elo = room_elo_rooms.length
+    ? room_elo_rooms.reduce((a, b) => (b.room_elo_delta < a.room_elo_delta ? b : a))
+    : null;
   $: pbt_max = Math.max(1, ...stats.points_by_type.map((t) => Math.abs(t.points)));
   $: hist_max = Math.max(1, ...stats.histogram.map((h) => h.count));
 
@@ -368,45 +379,77 @@
           {/if}
 
           <hr class="!my-4" />
-          <p class="text-sm opacity-60">Rekordi</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {#if best_room}
-              <a href={`/${best_room.room_id}`} class="card variant-soft p-3 block">
-                <div class="opacity-60 text-xs">Najboljša soba</div>
-                <div class="anchor font-bold truncate">{best_room.title}</div>
-                <div class="text-primary-500 font-bold">
-                  {best_room.points > 0 ? '+' : ''}{best_room.points} točk
-                </div>
-              </a>
-            {/if}
-            {#if worst_room}
-              <a href={`/${worst_room.room_id}`} class="card variant-soft p-3 block">
-                <div class="opacity-60 text-xs">Najslabša soba</div>
-                <div class="anchor font-bold truncate">{worst_room.title}</div>
-                <div class="text-error-500 font-bold">
-                  {worst_room.points > 0 ? '+' : ''}{worst_room.points} točk
-                </div>
-              </a>
-            {/if}
-            {#if best_elo}
-              <a href={`/${best_elo.room_id}`} class="card variant-soft p-3 block">
-                <div class="opacity-60 text-xs">Najboljša ELO sprememba</div>
-                <div class="anchor font-bold truncate">{best_elo.title}</div>
-                <div class="text-primary-500 font-bold">
-                  {best_elo.elo_delta > 0 ? '+' : ''}{best_elo.elo_delta} ELO
-                </div>
-              </a>
-            {/if}
-            {#if worst_elo}
-              <a href={`/${worst_elo.room_id}`} class="card variant-soft p-3 block">
-                <div class="opacity-60 text-xs">Najslabša ELO sprememba</div>
-                <div class="anchor font-bold truncate">{worst_elo.title}</div>
-                <div class="text-error-500 font-bold">
-                  {worst_elo.elo_delta > 0 ? '+' : ''}{worst_elo.elo_delta} ELO
-                </div>
-              </a>
-            {/if}
-          </div>
+          <p class="text-sm opacity-60">Rekordne sobe</p>
+          <TabGroup>
+            <Tab bind:group={rekordi_tab} name="rekordi" value={0}>Točke</Tab>
+            <Tab bind:group={rekordi_tab} name="rekordi" value={1}>Po igrah</Tab>
+            <Tab bind:group={rekordi_tab} name="rekordi" value={2}>Po sobah</Tab>
+            <svelte:fragment slot="panel">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {#if rekordi_tab === 0}
+                  {#if best_room}
+                    <a href={`/${best_room.room_id}`} class="card variant-soft p-3 block">
+                      <div class="opacity-60 text-xs">Najboljša soba</div>
+                      <div class="anchor font-bold truncate">{best_room.title}</div>
+                      <div class="text-primary-500 font-bold">
+                        {best_room.points > 0 ? '+' : ''}{best_room.points} točk
+                      </div>
+                    </a>
+                  {/if}
+                  {#if worst_room}
+                    <a href={`/${worst_room.room_id}`} class="card variant-soft p-3 block">
+                      <div class="opacity-60 text-xs">Najslabša soba</div>
+                      <div class="anchor font-bold truncate">{worst_room.title}</div>
+                      <div class="text-error-500 font-bold">
+                        {worst_room.points > 0 ? '+' : ''}{worst_room.points} točk
+                      </div>
+                    </a>
+                  {/if}
+                {:else if rekordi_tab === 1}
+                  {#if best_elo}
+                    <a href={`/${best_elo.room_id}`} class="card variant-soft p-3 block">
+                      <div class="opacity-60 text-xs">Najboljša ELO sprememba</div>
+                      <div class="anchor font-bold truncate">{best_elo.title}</div>
+                      <div class="text-primary-500 font-bold">
+                        {best_elo.elo_delta > 0 ? '+' : ''}{best_elo.elo_delta} ELO
+                      </div>
+                    </a>
+                  {/if}
+                  {#if worst_elo}
+                    <a href={`/${worst_elo.room_id}`} class="card variant-soft p-3 block">
+                      <div class="opacity-60 text-xs">Najslabša ELO sprememba</div>
+                      <div class="anchor font-bold truncate">{worst_elo.title}</div>
+                      <div class="text-error-500 font-bold">
+                        {worst_elo.elo_delta > 0 ? '+' : ''}{worst_elo.elo_delta} ELO
+                      </div>
+                    </a>
+                  {/if}
+                {:else}
+                  {#if best_room_elo}
+                    <a href={`/${best_room_elo.room_id}`} class="card variant-soft p-3 block">
+                      <div class="opacity-60 text-xs">Najboljša ELO sprememba</div>
+                      <div class="anchor font-bold truncate">{best_room_elo.title}</div>
+                      <div class="text-primary-500 font-bold">
+                        {best_room_elo.room_elo_delta > 0 ? '+' : ''}{best_room_elo.room_elo_delta} ELO
+                      </div>
+                    </a>
+                  {/if}
+                  {#if worst_room_elo}
+                    <a href={`/${worst_room_elo.room_id}`} class="card variant-soft p-3 block">
+                      <div class="opacity-60 text-xs">Najslabša ELO sprememba</div>
+                      <div class="anchor font-bold truncate">{worst_room_elo.title}</div>
+                      <div class="text-error-500 font-bold">
+                        {worst_room_elo.room_elo_delta > 0 ? '+' : ''}{worst_room_elo.room_elo_delta} ELO
+                      </div>
+                    </a>
+                  {/if}
+                {/if}
+              </div>
+            </svelte:fragment>
+          </TabGroup>
+
+          <hr class="!my-4" />
+          <p class="text-sm opacity-60">Rekordne runde</p>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
             {#if stats.biggest_win}
