@@ -177,6 +177,10 @@
   let disable_brez_valat: boolean;
   $: disable_brez_valat = game_state?.new_round.osnovno.napoved.valat !== NapovedValata.Brez;
 
+  const delta_fmt = (d: number | null) => (d === null ? '' : d > 0 ? `+${d}` : `${d}`);
+  const delta_class = (d: number | null) =>
+    d === null ? '' : d > 0 ? 'text-success-500' : d < 0 ? 'text-error-500' : 'opacity-40';
+
   function update_scoreboard_total() {
     const radelc = [...new Array(player_count)].fill(0);
     const points = [...new Array(player_count)].fill(0);
@@ -641,6 +645,43 @@
                 <td />
                 {#each points_total as points, i}
                   <td class="opacity-40">={points - 100 * radelc_total[i]}</td>
+                {/each}
+              </tr>
+            {/if}
+            {#if data.rating_deltas?.hand.some((d) => d !== null)}
+              <tr class="text-xs !border-surface-500/40">
+                <td class="opacity-40">Δ</td>
+                {#each data.rating_deltas.hand as d, i}
+                  <td>
+                    {#if d !== null}
+                      <button
+                        type="button"
+                        class="cursor-pointer"
+                        use:popup={{ event: 'click', target: `rating-info-${i}`, placement: 'bottom' }}
+                      >
+                        <span class={delta_class(d)}>{delta_fmt(d)}</span>
+                        <span class="opacity-40">/</span>
+                        <span class={delta_class(data.rating_deltas.room[i])}
+                          >{delta_fmt(data.rating_deltas.room[i])}</span
+                        >
+                      </button>
+                      <div
+                        class="card p-4 shadow-xl z-10 bg-surface-200-700-token text-sm"
+                        data-popup={`rating-info-${i}`}
+                      >
+                        <p class="font-semibold mb-2">Sprememba ELO ocen · {data.room.player_names[i]}</p>
+                        <div class="grid grid-cols-[auto_auto] gap-x-4 gap-y-1">
+                          <span class="opacity-60">Δ igre</span>
+                          <span class="text-right font-bold {delta_class(d)}">{delta_fmt(d)}</span>
+                          <span class="opacity-60">Δ sobe</span>
+                          <span class="text-right font-bold {delta_class(data.rating_deltas.room[i])}"
+                            >{delta_fmt(data.rating_deltas.room[i])}</span
+                          >
+                        </div>
+                        <div class="arrow bg-surface-200-700-token" />
+                      </div>
+                    {/if}
+                  </td>
                 {/each}
               </tr>
             {/if}

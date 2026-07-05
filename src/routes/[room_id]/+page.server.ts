@@ -1,4 +1,5 @@
 import { get_room } from '$lib/room_controler.js';
+import { room_rating_deltas } from '$lib/rating';
 import { error } from '@sveltejs/kit';
 
 export const prerender = 'auto';
@@ -10,5 +11,6 @@ export function load({ params }) {
 
   return {
     room: room,
+    rating_deltas: room_rating_deltas(params.room_id),
   };
 }

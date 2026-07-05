@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { get_room, get_state } from '$lib/room_controler';
 import { save_account } from '$lib/auth';
 import { aggregate_stats } from '$lib/stats';
-import { rating_for, room_rating_for } from '$lib/rating';
+import { rating_for, room_rating_for, account_room_delta } from '$lib/rating';
 import type { GameRound } from '$lib/tarok';
 
 export const prerender = false;
@@ -56,6 +56,8 @@ export function load({ locals }) {
       radelci += round.radelc_change?.[index] ?? 0;
     }
 
+    const delta = account_room_delta(room_id, locals.account.id);
+
     rooms.push({
       room_id,
       title: room.title,
@@ -64,6 +66,8 @@ export function load({ locals }) {
       points,
       radelci,
       round_count: state.rounds.length,
+      elo_delta: delta?.hand ?? null,
+      room_elo_delta: delta?.room ?? null,
     });
   }
 

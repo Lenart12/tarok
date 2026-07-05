@@ -23,6 +23,10 @@
 
   $: best_room = data.rooms.length ? data.rooms.reduce((a, b) => (b.points > a.points ? b : a)) : null;
   $: worst_room = data.rooms.length ? data.rooms.reduce((a, b) => (b.points < a.points ? b : a)) : null;
+
+  $: elo_rooms = data.rooms.filter((r): r is typeof r & { elo_delta: number } => r.elo_delta !== null);
+  $: best_elo = elo_rooms.length ? elo_rooms.reduce((a, b) => (b.elo_delta > a.elo_delta ? b : a)) : null;
+  $: worst_elo = elo_rooms.length ? elo_rooms.reduce((a, b) => (b.elo_delta < a.elo_delta ? b : a)) : null;
   $: pbt_max = Math.max(1, ...stats.points_by_type.map((t) => Math.abs(t.points)));
   $: hist_max = Math.max(1, ...stats.histogram.map((h) => h.count));
 
@@ -381,6 +385,24 @@
                 <div class="anchor font-bold truncate">{worst_room.title}</div>
                 <div class="text-error-500 font-bold">
                   {worst_room.points > 0 ? '+' : ''}{worst_room.points} točk
+                </div>
+              </a>
+            {/if}
+            {#if best_elo}
+              <a href={`/${best_elo.room_id}`} class="card variant-soft p-3 block">
+                <div class="opacity-60 text-xs">Najboljša ELO sprememba</div>
+                <div class="anchor font-bold truncate">{best_elo.title}</div>
+                <div class="text-primary-500 font-bold">
+                  {best_elo.elo_delta > 0 ? '+' : ''}{best_elo.elo_delta} ELO
+                </div>
+              </a>
+            {/if}
+            {#if worst_elo}
+              <a href={`/${worst_elo.room_id}`} class="card variant-soft p-3 block">
+                <div class="opacity-60 text-xs">Najslabša ELO sprememba</div>
+                <div class="anchor font-bold truncate">{worst_elo.title}</div>
+                <div class="text-error-500 font-bold">
+                  {worst_elo.elo_delta > 0 ? '+' : ''}{worst_elo.elo_delta} ELO
                 </div>
               </a>
             {/if}

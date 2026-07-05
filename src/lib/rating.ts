@@ -110,6 +110,7 @@ export function round_teams(round: GameRound): { active: number[]; passive: numb
 }
 
 interface RoomData {
+  room_id: string;
   created: number;
   player_count: number;
   starting_points: number[];
@@ -130,11 +131,20 @@ export function recompute_ratings(): Ratings {
     const account = room.seat_account[seat];
     return account ? ensure(account).rating : BASELINE;
   };
+  // Per-room delta capture (in memory, no extra disk writes): the rating each
+  // room contributed to each account, for both ladders. Keyed room_id -> acc.
+  const hand_deltas = new Map<string, Record<string, number>>();
+  let capture_room: string | null = null;
   const bump = (id: string, delta: number, counts_as_game: boolean) => {
     const rec = ensure(id);
     rec.rating += delta;
     if (counts_as_game) rec.games += 1;
     rec.peak = Math.max(rec.peak, rec.rating);
+    if (capture_room !== null) {
+      const m = hand_deltas.get(capture_room) ?? {};
+      m[id] = (m[id] ?? 0) + delta;
+      hand_deltas.set(capture_room, m);
+    }
   };
   const k_of = (id: string): number => k_for(ensure(id).games);
 
@@ -146,6 +156,7 @@ export function recompute_ratings(): Ratings {
     const state = get_state(room_id);
     const claims = get_claims(room_id);
     rooms.push({
+      room_id,
       created: room.created ?? 0,
       player_count: room.player_names.length,
       starting_points: room.starting_points ?? [],
@@ -200,6 +211,7 @@ export function recompute_ratings(): Ratings {
   hands.sort((a, b) => a.created - b.created || a.round_index - b.round_index);
 
   for (const { room, round } of hands) {
+    capture_room = room.room_id;
     switch (round_type_game(round.round_type)) {
       case NewRoundType.Renons:
         apply_renons(round, room, bump);
@@ -215,20 +227,37 @@ export function recompute_ratings(): Ratings {
   }
 
   // Final per-room radelci-efficiency pass (order-independent).
-  for (const room of rooms) apply_radelci(room, bump);
+  for (const room of rooms) {
+    capture_room = room.room_id;
+    apply_radelci(room, bump);
+  }
+  capture_room = null;
 
   save_ratings(ratings);
 
   // Second, independent ladder: one pairwise Elo event per completed room.
-  room_cache = recompute_room_ratings(rooms);
+  const room_deltas = new Map<string, Record<string, number>>();
+  room_cache = recompute_room_ratings(rooms, room_deltas);
   save_room_ratings(room_cache);
+
+  // Merge both ladders' per-room deltas into the shared cache.
+  delta_cache = new Map();
+  for (const room of rooms) {
+    delta_cache.set(room.room_id, {
+      hand: hand_deltas.get(room.room_id) ?? {},
+      room: room_deltas.get(room.room_id) ?? {},
+    });
+  }
 
   return ratings;
 }
 
 // The whole-session ladder. Each room past the round gate is a single free-for-all
 // Elo match, ranking players by their adjusted final score (§ apply_room_match).
-function recompute_room_ratings(rooms: RoomData[]): Ratings {
+function recompute_room_ratings(
+  rooms: RoomData[],
+  deltas: Map<string, Record<string, number>>,
+): Ratings {
   const ratings: Ratings = {};
   const ensure = (id: string): RatingRecord =>
     (ratings[id] ??= { rating: INITIAL, games: 0, peak: INITIAL, updated: Date.now() });
@@ -236,16 +265,23 @@ function recompute_room_ratings(rooms: RoomData[]): Ratings {
     const account = room.seat_account[seat];
     return account ? ensure(account).rating : BASELINE;
   };
+  let capture_room: string | null = null;
   const bump = (id: string, delta: number) => {
     const rec = ensure(id);
     rec.rating += delta;
     rec.games += 1;
     rec.peak = Math.max(rec.peak, rec.rating);
+    if (capture_room !== null) {
+      const m = deltas.get(capture_room) ?? {};
+      m[id] = (m[id] ?? 0) + delta;
+      deltas.set(capture_room, m);
+    }
   };
   const k_room = (id: string): number =>
     ensure(id).games < ROOM_PROVISIONAL_GAMES ? ROOM_K_NEW : ROOM_K_ESTABLISHED;
 
   for (const room of [...rooms].sort((a, b) => a.created - b.created)) {
+    capture_room = room.room_id;
     apply_room_match(room, rating_of, k_room, bump);
   }
   return ratings;
@@ -394,6 +430,9 @@ function apply_radelci(
 // ---------------------------------------------------------------------------
 let cache: Ratings | null = null;
 let room_cache: Ratings | null = null;
+// Per-room rating contribution (both ladders), captured during recompute. In
+// memory only — reading it never triggers an extra disk write.
+let delta_cache: Map<string, { hand: Record<string, number>; room: Record<string, number> }> | null = null;
 let recompute_timer: NodeJS.Timeout | undefined;
 
 export interface PriorInfo {
@@ -430,6 +469,39 @@ export const RATING_INFO = {
 export function get_priors(): PriorInfo[] {
   if (prior_cache === null) get_ratings();
   return prior_cache ?? [];
+}
+
+// Per-seat rating change this room contributed on each ladder, from the last
+// recompute (null per seat when unclaimed). Reads the in-memory delta cache.
+export function room_rating_deltas(
+  room_id: string,
+): { hand: (number | null)[]; room: (number | null)[] } {
+  if (delta_cache === null) get_ratings();
+  const room = get_room(room_id);
+  if (room === undefined) return { hand: [], room: [] };
+  const d = delta_cache?.get(room_id);
+  const claims = get_claims(room_id);
+  const hand: (number | null)[] = [];
+  const room_arr: (number | null)[] = [];
+  for (const pid of room.player_ids) {
+    const account = claims[pid];
+    hand.push(account && d ? Math.round(d.hand[account] ?? 0) : null);
+    room_arr.push(account && d ? Math.round(d.room[account] ?? 0) : null);
+  }
+  return { hand, room: room_arr };
+}
+
+// One account's rating change from a single room, both ladders (null if the
+// account has no captured delta for that room).
+export function account_room_delta(
+  room_id: string,
+  account_id: string,
+): { hand: number; room: number } | null {
+  if (delta_cache === null) get_ratings();
+  const d = delta_cache?.get(room_id);
+  if (d === undefined) return null;
+  if (d.hand[account_id] === undefined && d.room[account_id] === undefined) return null;
+  return { hand: Math.round(d.hand[account_id] ?? 0), room: Math.round(d.room[account_id] ?? 0) };
 }
 
 export function save_ratings(ratings: Ratings) {
